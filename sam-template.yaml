@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure - Cloud Integrations.
+Parameters:
+  KmsKeyId:
+    Type: String
+    Description: A KMS key used to encrypt and decrypt the NR license key. Note that it's the final part of key's ARN.
+
+Resources:
+  NewRelicLogIngestionFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Runtime: python2.7
+      Handler: function.lambda_handler
+      CodeUri:
+        Bucket: nr-serverless-applications
+        Key: newrelic-log-ingestion.zip
+      FunctionName: newrelic-log-ingestion
+      Timeout: 30
+      KmsKeyArn:
+        !Sub
+          - 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
+          - {keyId: !Ref KmsKeyId}
+      Environment:
+        Variables: 
+          LICENSE_KEY: 'YOUR-LICENSE-KEY'
+      Policies:
+        - KMSDecryptPolicy:
+            KeyId: !Ref KmsKeyId
