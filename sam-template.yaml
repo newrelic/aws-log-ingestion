@@ -27,3 +27,13 @@ Resources:
       Policies:
         - KMSDecryptPolicy:
             KeyId: !Ref KmsKeyId
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NewRelicLogIngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub logs.${AWS::Region}.amazonaws.com
+      SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+Outputs:
+  NewRelicLogIngestionFunctionArn:
+    Value: !GetAtt NewRelicLogIngestionFunction.Arn
