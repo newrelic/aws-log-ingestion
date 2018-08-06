@@ -127,6 +127,11 @@ def _get_log_type(event):
         and 'ObjectCreated' in event['Records'][0]['eventName']):
 
         return 's3'
+    elif ('Records' in event
+        and 'kinesis' in event['Records'][0]
+        and 'aws:kinesis:record' in event['Records'][0]['eventName']):
+
+        return 'kinesis'
 
     return 'unknown'
 
@@ -211,6 +216,12 @@ def lambda_handler(event, context):
 
         # There are many log entries in a log file, so send them one by one
         for log_line in data.splitlines():
+            _send_log_entry(log_line, context)
+
+    elif log_type == 'kinesis':
+        log_entry = gzip.GzipFile(fileobj=StringIO(
+            event['Records'][0]['kinesis']['data'].decode('base64'))).read()
+        for log_line in log_entry.splitlines():
             _send_log_entry(log_line, context)
 
     else:
