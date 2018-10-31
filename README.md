@@ -14,6 +14,14 @@ There are few resources that will be created when you create the application fro
 - The Lambda function itself
 - A Role used to give execute permissions to the lambda function and to use the KMS key
 
+# Configure region
+
+If you are using New Relic's EU region, you will need to add this environment variable to your function:
+
+```
+NR_REGION: EU
+```
+
 # Configure Retries
 
 You can configure the number of retries you want to perform in case the function fails to send the data in case of communication issues.

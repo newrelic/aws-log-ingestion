@@ -10,7 +10,7 @@ Resources:
   NewRelicLogIngestionFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Runtime: python2.7
+      Runtime: python3.6
       Handler: function.lambda_handler
       CodeUri:
         Bucket: nr-serverless-applications

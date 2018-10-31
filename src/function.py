@@ -31,23 +31,28 @@ environment variable.
 3. Go to the start of the page and press "Save". Logs should start to be processed by the Lambda.
 To check if everything is functioning properly you can check the Monitoring tab and CloudWatch Logs
 
+If you are using New Relic's EU region, you will need to add this environment variable to your function:
+
+- NR_REGION: EU
+
 For more detailed documentation, check New Relic's documentation site:
 https://docs.newrelic.com/
 '''
-from __future__ import print_function
 import os
 import gzip
 import json
-import urllib2
 import time
 import boto3
 
-from StringIO import StringIO
+from urllib import request
+from io import StringIO
 from base64 import b64decode
 
 
 # New Relic Infractructure's ingest service. Do not modify.
-INGEST_SERVICE_URL = 'https://infra-api.newrelic.com/integrations/aws'
+INGEST_SERVICE_PATH = '/integrations/aws'
+US_INGEST_SERVICE_HOST = 'https://infra-api.newrelic.com'
+EU_INGEST_SERVICE_HOST = 'https://infra-api.eu.newrelic.com'
 
 # Retrying configuration.
 # Increasing these numbers will make the function longer in case of
@@ -70,19 +75,27 @@ class BadRequestException(Exception):
     pass
 
 
+class ThrottlingException(Exception):
+    pass
+
+
 def http_retryable(func):
     '''
     Decorator that retries HTTP calls.
 
     The decorated function should perform an HTTP request and return its
     response.
-    
+
     That function will be called until it returns a 200 OK response or 
     MAX_RETRIES is reached. In that case a MaxRetriesException will be raised.
-    
-    If the function returns a 4XX Bad Request, it will raise a
-    BadRequestException without any retry.
+
+    If the function returns a 4XX Bad Request, it will raise a BadRequestException
+    without any retry unless it returns a 429 Too many requests. In that case, it
+    will raise a ThrottlingException.
     '''
+    def _format_error(e, text):
+        return '{}. {}'.format(e, text)
+
     def wrapper_func():
         backoff = INITIAL_BACKOFF
         retries = 0
@@ -99,13 +112,24 @@ def http_retryable(func):
                 response = func()
 
             # This exception is raised when receiving a non-200 response
-            except urllib2.HTTPError as e:
-                print('There was an error. Reason: {}'.format(e.reason))
-                if 400 <= e.getcode() < 500:
-                    raise BadRequestException(e.read())
+            except request.HTTPError as e:
+                if e.getcode() == 400:
+                    raise BadRequestException(
+                        _format_error(e, 'Unexpected payload'))
+                elif e.getcode() == 403:
+                    raise BadRequestException(
+                        _format_error(e, 'Review your license key'))
+                elif e.getcode() == 404:
+                    raise BadRequestException(_format_error(
+                        e, 'Review the region endpoint'))
+                elif e.getcode() == 429:
+                    raise ThrottlingException(
+                        _format_error(e, 'Too many requests'))
+                elif 400 <= e.getcode() < 500:
+                    raise BadRequestException(e)
 
             # This exception is raised when the service is not responding
-            except urllib2.URLError as e:
+            except request.URLError as e:
                 print('There was an error. Reason: {}'.format(e.reason))
             else:
                 return response
@@ -123,8 +147,8 @@ def _get_log_type(event):
     if 'awslogs' in event:
         return 'cw_logs'
     elif ('Records' in event
-        and 's3' in event['Records'][0]
-        and 'ObjectCreated' in event['Records'][0]['eventName']):
+            and 's3' in event['Records'][0]
+            and 'ObjectCreated' in event['Records'][0]['eventName']):
 
         return 's3'
 
@@ -163,16 +187,18 @@ def _send_log_entry(log_entry, context):
 
     @http_retryable
     def do_request():
-        request = urllib2.Request(INGEST_SERVICE_URL, json.dumps(data))
-        request.add_header('X-License-Key', _get_license_key())
-        return urllib2.urlopen(request)
+        req = request.Request(_get_ingest_service_url(), _get_payload(data))
+        req.add_header('X-License-Key', _get_license_key())
+        req.add_header('Content-Encoding', 'gzip')
+        return request.urlopen(req)
 
     try:
         response = do_request()
-    except MaxRetriesException:
+    except MaxRetriesException as e:
         print('Retry limit reached. Failed to send log entry.')
+        raise e
     except BadRequestException as e:
-        print('Bad request: {}. Review your license key.'.format(e.message))
+        print(e)
     else:
         print('Log entry sent. Response code: {}'.format(response.getcode()))
 
@@ -189,6 +215,28 @@ def _get_license_key():
         CiphertextBlob=b64decode(encrypted_license_key)).get('Plaintext')
 
 
+def _get_ingest_service_url():
+    '''
+    Environment variable NR_REGION specify the region for the ingest service.
+    Values US and EU return the default ingestion URL for that region, but any URL can be passed.
+    Default value is US
+    '''
+    env_ingest_url = os.getenv('NR_REGION', 'US')
+
+    if env_ingest_url == 'US':
+        ingest_url = US_INGEST_SERVICE_HOST
+    elif env_ingest_url == 'EU':
+        ingest_url = EU_INGEST_SERVICE_HOST
+    else:
+        ingest_url = env_ingest_url
+
+    return ingest_url + INGEST_SERVICE_PATH
+
+
+def _get_payload(data):
+    return gzip.compress(json.dumps(data).encode())
+
+
 def lambda_handler(event, context):
     '''
     This is the Lambda handler, which is called when the function is invoked.
@@ -199,8 +247,8 @@ def lambda_handler(event, context):
 
     if log_type == 'cw_logs':
         # CloudWatch Log entries are compressed and encoded in Base64
-        log_entry = gzip.GzipFile(fileobj=StringIO(
-            event['awslogs']['data'].decode('base64'))).read()
+        payload = b64decode(event['awslogs']['data'])
+        log_entry = gzip.decompress(payload).decode('utf-8')
         _send_log_entry(log_entry, context)
 
     elif log_type == 's3':
