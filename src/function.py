@@ -25,10 +25,9 @@ instructions:
 1. After creating te Lambda based on the Blueprint, select it and open the Environment Variables
 section.
 
-2. Check the "Enable encryption helpers" and press "Encrypt" button next to the "LICENSE_KEY" 
-environment variable.
+2. Check that the "LICENSE_KEY" environment variable if properly filled-in.
 
-3. Go to the start of the page and press "Save". Logs should start to be processed by the Lambda.
+2. If you changed anything, go to the start of the page and press "Save". Logs should start to be processed by the Lambda.
 To check if everything is functioning properly you can check the Monitoring tab and CloudWatch Logs
 
 If you are using New Relic's EU region, you will need to add this environment variable to your function:
@@ -65,6 +64,8 @@ MAX_RETRIES = 3
 INITIAL_BACKOFF = 1
 # Multiplier factor for the backoff between retries
 BACKOFF_MULTIPLIER = 2
+# Max length in bytes of the payload
+MAX_PAYLOAD_SIZE = 1000 * 1024
 
 
 class MaxRetriesException(Exception):
@@ -171,9 +172,9 @@ def _get_s3_data(bucket, key):
 
 def _send_log_entry(log_entry, context):
     '''
-    This function sends the given log entry (and Lambda function's execution
-    context) to New Relic Infrastructure's ingest service, retrying the request
-    if needed.
+    This function sends the log entry to New Relic Infrastructure's ingest
+    server. If it is necessary, entries will be split in different payloads
+    Log entry is sent along with the Lambda function's execution context
     '''
     data = {
         'context': {
@@ -184,10 +185,18 @@ def _send_log_entry(log_entry, context):
         },
         'entry': log_entry
     }
+    for payload in _generate_payloads(data):
+        _send_payload(payload)
 
+
+def _send_payload(payload):
+    '''
+    This function sends the given payload to New Relic Infrastructure's ingest
+    service, retrying the request if needed.
+    '''
     @http_retryable
     def do_request():
-        req = request.Request(_get_ingest_service_url(), _get_payload(data))
+        req = request.Request(_get_ingest_service_url(), payload)
         req.add_header('X-License-Key', _get_license_key())
         req.add_header('Content-Encoding', 'gzip')
         return request.urlopen(req)
@@ -205,36 +214,69 @@ def _send_log_entry(log_entry, context):
 
 def _get_license_key():
     '''
-    This functions gets encrypted New Relic's license key from env vars and
-    decrypts it using KMS.
+    This functions gets New Relic's license key from env vars.
     '''
-    kms_client = boto3.client('kms')
-    encrypted_license_key = os.environ['LICENSE_KEY']
-
-    return kms_client.decrypt(
-        CiphertextBlob=b64decode(encrypted_license_key)).get('Plaintext')
-
+    return os.environ['LICENSE_KEY']
 
 def _get_ingest_service_url():
     '''
-    Environment variable NR_REGION specify the region for the ingest service.
-    Values US and EU return the default ingestion URL for that region, but any URL can be passed.
-    Default value is US
+    Environment variable NR_REGION specifies the region for the ingest service.
+    Values US and EU return the default ingestion URL for that region, but any
+    URL can be passed.
+    Default value is calculated based on the license key.
     '''
-    env_ingest_url = os.getenv('NR_REGION', 'US')
+    license = os.getenv('LICENSE_KEY', '')
+    license_region = 'EU' if license.startswith('eu') else 'US'
 
-    if env_ingest_url == 'US':
+    env_ingest_region = os.getenv('NR_REGION', license_region)
+
+    if env_ingest_region == 'US':
         ingest_url = US_INGEST_SERVICE_HOST
-    elif env_ingest_url == 'EU':
+    elif env_ingest_region == 'EU':
         ingest_url = EU_INGEST_SERVICE_HOST
     else:
-        ingest_url = env_ingest_url
+        ingest_url = env_ingest_region
 
     return ingest_url + INGEST_SERVICE_PATH
 
 
-def _get_payload(data):
-    return gzip.compress(json.dumps(data).encode())
+def _generate_payloads(data):
+    '''
+    Return a list of payloads to be sent to New Relig ingest service.
+    This methos usually returns a list of one element, but can be bigger if the
+    payload size is too big
+    '''
+    payload = gzip.compress(json.dumps(data).encode())
+
+    if (len(payload) < MAX_PAYLOAD_SIZE):
+        return [payload]
+
+    split_data = _split(data)
+    return _generate_payloads(split_data[0]) + _generate_payloads(split_data[1])
+
+
+def _split(data):
+    '''
+    When data size is bigger than supported payload, it is divided in two
+    different requests
+    '''
+    context = data['context']
+    entry = json.loads(data['entry'])
+    logEvents = entry['logEvents']
+    half = len(logEvents) // 2
+
+    return [
+        _reconstruct_data(context, entry, logEvents[:half]),
+        _reconstruct_data(context, entry, logEvents[half:])
+    ]
+
+
+def _reconstruct_data(context, entry, logEvents):
+    entry['logEvents'] = logEvents
+    return {
+        'context': context,
+        'entry': json.dumps(entry)
+    }
 
 
 def lambda_handler(event, context):
@@ -247,8 +289,8 @@ def lambda_handler(event, context):
 
     if log_type == 'cw_logs':
         # CloudWatch Log entries are compressed and encoded in Base64
-        payload = b64decode(event['awslogs']['data'])
-        log_entry = gzip.decompress(payload).decode('utf-8')
+        event_data = b64decode(event['awslogs']['data'])
+        log_entry = gzip.decompress(event_data).decode('utf-8')
         _send_log_entry(log_entry, context)
 
     elif log_type == 's3':

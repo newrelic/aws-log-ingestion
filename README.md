@@ -5,7 +5,6 @@ AWS Serverless Application that sends log data from CloudWatch Logs and S3 to Ne
 # Pre-requisites
 
 - New Relic license key.
-- KMS encryption key that will be used to encrypt/decrypt your New Relic license key (key ID, which is the last part of the ARN, will be needed when creating the application from the repository)
 
 # Resources created by the SAM template
 
@@ -43,10 +42,8 @@ As an example, in default above configuration, first retry will happen after 1 s
 
 After creating the function you will need to do the following to make the lambda function work properly:
 
-- Select your function and open the 'Envronment variables' section. You should see your license key assigned to the **LICENSE_KEY** environment variable, in clear text.
-- Open the *Encryption configuration* section and select *Enable helpers for encryption in transit*
-- In *KMS key to encrypt in transit* select the **same** key as the one below in *KMS key to encrypt at rest*.
-- Press the *Encrypt* button next to you license key.
+- Select your function and open the 'Environment variables' section. You should see your license key assigned to the **LICENSE_KEY** environment variable, in clear text, if you opted to include it when deploying the function.
+- If you initially ommited the license key, you will have to insert it now in the **LICENSE_KEY** environment variable.
 - Go up and press *Save*.
 
 Your function should now be working properly. You can go to the *Monitoring* tab and verify that *Invocation errors* should be 
