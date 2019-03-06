@@ -40,10 +40,3 @@ After creating the function you will need to do the following to make the lambda
 
 Your function should now be working properly. You can go to the *Monitoring* tab and verify that *Invocation errors* should be 
 zero or moving to zero. You can also see the logs by clicking in *View logs in CloudWatch*.
-
-# Testing the code
-
-For testing the code just execute
-```
-python3 -m unittest test/*test.py
-```
