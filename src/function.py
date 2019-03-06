@@ -46,12 +46,24 @@ import boto3
 from urllib import request
 from io import StringIO
 from base64 import b64decode
+from enum import Enum
+
+
+class EntryType(Enum):
+    VPC = "vpc"
+    LAMBDA = "lambda"
+    OTHER = "other"
 
 
 # New Relic Infractructure's ingest service. Do not modify.
-INGEST_SERVICE_PATH = '/integrations/aws'
-US_INGEST_SERVICE_HOST = 'https://infra-api.newrelic.com'
-EU_INGEST_SERVICE_HOST = 'https://infra-api.eu.newrelic.com'
+INGEST_SERVICE_VERSION = 'v1'
+US_INGEST_SERVICE_HOST = 'https://cloud-collector.newrelic.com'
+EU_INGEST_SERVICE_HOST = 'https://cloud-collector.eu.newrelic.com'
+INGEST_SERVICE_PATHS = {
+    EntryType.LAMBDA: "/aws/lambda",
+    EntryType.VPC: "/aws/vpc",
+    EntryType.OTHER: "/aws",
+}
 
 # Retrying configuration.
 # Increasing these numbers will make the function longer in case of
@@ -185,18 +197,19 @@ def _send_log_entry(log_entry, context):
         },
         'entry': log_entry
     }
+    entry_type = _get_entry_type(log_entry)
     for payload in _generate_payloads(data):
-        _send_payload(payload)
+        _send_payload(entry_type, payload)
 
 
-def _send_payload(payload):
+def _send_payload(entry_type, payload):
     '''
     This function sends the given payload to New Relic Infrastructure's ingest
     service, retrying the request if needed.
     '''
     @http_retryable
     def do_request():
-        req = request.Request(_get_ingest_service_url(), payload)
+        req = request.Request(_get_ingest_service_url(entry_type), payload)
         req.add_header('X-License-Key', _get_license_key())
         req.add_header('Content-Encoding', 'gzip')
         return request.urlopen(req)
@@ -218,10 +231,32 @@ def _get_license_key():
     '''
     return os.environ['LICENSE_KEY']
 
-def _get_ingest_service_url():
+
+def _get_ingest_service_url(entity_type):
+    '''
+    Returns the ingest_service_url.
+    This is a concatenation of the HOST + PATH + VERSION
+    '''
+    path = INGEST_SERVICE_PATHS[entity_type]
+    return _get_ingest_service_host() + path + '/' + INGEST_SERVICE_VERSION
+
+
+def _get_entry_type(log_entry):
+    '''
+    Returns the EntryType of the entry based on some text found in its value.
+    '''
+    if '"logGroup":"/aws/vpc/flow-logs"' in log_entry:
+        return EntryType.VPC
+    elif '"logGroup":"/aws/lambda/' in log_entry and ',\\"NR_LAMBDA_MONITORING\\",' in log_entry:
+        return EntryType.LAMBDA
+    else:
+        return EntryType.OTHER
+
+
+def _get_ingest_service_host():
     '''
     Environment variable NR_REGION specifies the region for the ingest service.
-    Values US and EU return the default ingestion URL for that region, but any
+    Values US and EU return the default ingestion HOST for that region, but any
     URL can be passed.
     Default value is calculated based on the license key.
     '''
@@ -231,13 +266,11 @@ def _get_ingest_service_url():
     env_ingest_region = os.getenv('NR_REGION', license_region)
 
     if env_ingest_region == 'US':
-        ingest_url = US_INGEST_SERVICE_HOST
+        return US_INGEST_SERVICE_HOST
     elif env_ingest_region == 'EU':
-        ingest_url = EU_INGEST_SERVICE_HOST
+        return EU_INGEST_SERVICE_HOST
     else:
-        ingest_url = env_ingest_region
-
-    return ingest_url + INGEST_SERVICE_PATH
+        return env_ingest_region
 
 
 def _generate_payloads(data):
