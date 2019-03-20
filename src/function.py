@@ -58,7 +58,7 @@ class EntryType(Enum):
 # New Relic Infractructure's ingest service. Do not modify.
 INGEST_SERVICE_VERSION = 'v1'
 US_INGEST_SERVICE_HOST = 'https://cloud-collector.newrelic.com'
-EU_INGEST_SERVICE_HOST = 'https://cloud-collector.eu.newrelic.com'
+EU_INGEST_SERVICE_HOST = 'https://cloud-collector.eu01.nr-data.net'
 INGEST_SERVICE_PATHS = {
     EntryType.LAMBDA: "/aws/lambda",
     EntryType.VPC: "/aws/vpc",
