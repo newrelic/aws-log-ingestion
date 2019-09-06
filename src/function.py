@@ -1,5 +1,5 @@
 '''
-Copyright 2017 New Relic, Inc.
+Copyright 2019 New Relic, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,17 +22,14 @@ ready to read log files from S3 buckets too.
 New Relic's license key must be encrypted using KMS following these
 instructions:
 
-1. After creating te Lambda based on the Blueprint, select it and open the Environment Variables
-section.
+1. After creating te Lambda based on the Blueprint, select it and open the
+Environment Variables section.
 
 2. Check that the "LICENSE_KEY" environment variable if properly filled-in.
 
-2. If you changed anything, go to the start of the page and press "Save". Logs should start to be processed by the Lambda.
-To check if everything is functioning properly you can check the Monitoring tab and CloudWatch Logs
-
-If you are using New Relic's EU region, you will need to add this environment variable to your function:
-
-- NR_REGION: EU
+3. If you changed anything, go to the start of the page and press "Save".
+Logs should start to be processed by the Lambda. To check if everything is
+functioning properly you can check the Monitoring tab and CloudWatch Logs.
 
 For more detailed documentation, check New Relic's documentation site:
 https://docs.newrelic.com/
@@ -42,28 +39,13 @@ import gzip
 import json
 import time
 import boto3
+import re
 
 from urllib import request
 from io import StringIO
 from base64 import b64decode
 from enum import Enum
 
-
-class EntryType(Enum):
-    VPC = "vpc"
-    LAMBDA = "lambda"
-    OTHER = "other"
-
-
-# New Relic Infractructure's ingest service. Do not modify.
-INGEST_SERVICE_VERSION = 'v1'
-US_INGEST_SERVICE_HOST = 'https://cloud-collector.newrelic.com'
-EU_INGEST_SERVICE_HOST = 'https://cloud-collector.eu01.nr-data.net'
-INGEST_SERVICE_PATHS = {
-    EntryType.LAMBDA: "/aws/lambda",
-    EntryType.VPC: "/aws/vpc",
-    EntryType.OTHER: "/aws",
-}
 
 # Retrying configuration.
 # Increasing these numbers will make the function longer in case of
@@ -80,15 +62,37 @@ BACKOFF_MULTIPLIER = 2
 MAX_PAYLOAD_SIZE = 1000 * 1024
 
 
+class EntryType(Enum):
+    VPC = "vpc"
+    LAMBDA = "lambda"
+    OTHER = "other"
+
+
+INGEST_SERVICE_VERSION = 'v1'
+US_LOGGING_INGEST_HOST = 'https://log-api.newrelic.com/log/v1'
+EU_LOGGING_INGEST_HOST = 'https://insights-collector.eu01.nr-data.net/log/v1'
+US_INFRA_INGEST_SERVICE_HOST = 'https://cloud-collector.newrelic.com'
+EU_INFRA_INGEST_SERVICE_HOST = 'https://cloud-collector.eu01.nr-data.net'
+INFRA_INGEST_SERVICE_PATHS = {
+    EntryType.LAMBDA: "/aws/lambda",
+    EntryType.VPC: "/aws/vpc",
+    EntryType.OTHER: "/aws",
+}
+
+LAMBDA_REQUEST_ID_REGEX = re.compile(
+    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+LOGGING_LAMBDA_VERSION = '1.0.1'
+LOGGING_PLUGIN_METADATA = {
+    'type': 'lambda',
+    'version': LOGGING_LAMBDA_VERSION
+}
+
+
 class MaxRetriesException(Exception):
     pass
 
 
 class BadRequestException(Exception):
-    pass
-
-
-class ThrottlingException(Exception):
     pass
 
 
@@ -99,12 +103,12 @@ def http_retryable(func):
     The decorated function should perform an HTTP request and return its
     response.
 
-    That function will be called until it returns a 200 OK response or 
+    That function will be called until it returns a 200 OK response or
     MAX_RETRIES is reached. In that case a MaxRetriesException will be raised.
 
     If the function returns a 4XX Bad Request, it will raise a BadRequestException
-    without any retry unless it returns a 429 Too many requests. In that case, it
-    will raise a ThrottlingException.
+    without any retry unless it returns a 429 Too many requests. In that case, request
+    will be also retried.
     '''
     def _format_error(e, text):
         return '{}. {}'.format(e, text)
@@ -136,8 +140,7 @@ def http_retryable(func):
                     raise BadRequestException(_format_error(
                         e, 'Review the region endpoint'))
                 elif e.getcode() == 429:
-                    raise ThrottlingException(
-                        _format_error(e, 'Too many requests'))
+                    print('There was an error. Reason: {}'.format(e.reason))
                 elif 400 <= e.getcode() < 500:
                     raise BadRequestException(e)
 
@@ -154,7 +157,7 @@ def http_retryable(func):
 
 def _get_log_type(event):
     '''
-    This function determines if the given event is triggered by 
+    This function determines if the given event is triggered by
     CloudWatch Logs or S3's ObjectCreated action.
     '''
     if 'awslogs' in event:
@@ -198,47 +201,105 @@ def _send_log_entry(log_entry, context):
         'entry': log_entry
     }
     entry_type = _get_entry_type(log_entry)
-    for payload in _generate_payloads(data):
-        _send_payload(entry_type, payload)
+
+    # Both Infrastructure and Logging require a "LICENSE_KEY" environment variable.
+    # In order to send data to the Infrastructure Pipeline, the customer doesn't need
+    # to do anything. To disable it, they'll set "INFRA_ENABLED" to "false".
+    # To send data to the Logging Pipeline, an environment variable called "LOGGING_ENABLED"
+    # is required and needs to be set to "true". To disable it, they don't need to do anything,
+    # it is disabled by default
+    # Instruction for how to find these keys are in the README.md
+    if _infra_enabled():
+        for payload in _generate_payloads(data, _split_infra_payload):
+            _send_payload(_get_infra_request_creator(entry_type, payload), True)
+    if _logging_enabled():
+        for payload in _generate_payloads(_package_log_payload(data), _split_log_payload):
+            _send_payload(_get_logging_request_creator(payload))
 
 
-def _send_payload(entry_type, payload):
+def _send_payload(request_creator, retry=False):
     '''
-    This function sends the given payload to New Relic Infrastructure's ingest
-    service, retrying the request if needed.
+    This function sends the given payload to New Relic,
+    retrying the request if needed.
     '''
     @http_retryable
     def do_request():
-        req = request.Request(_get_ingest_service_url(entry_type), payload)
-        req.add_header('X-License-Key', _get_license_key())
-        req.add_header('Content-Encoding', 'gzip')
+        req = request_creator()
         return request.urlopen(req)
 
     try:
         response = do_request()
     except MaxRetriesException as e:
         print('Retry limit reached. Failed to send log entry.')
-        raise e
+        if retry:
+            raise e
     except BadRequestException as e:
         print(e)
     else:
         print('Log entry sent. Response code: {}'.format(response.getcode()))
 
 
-def _get_license_key():
+def _generate_payloads(data, split_function):
+    '''
+    Return a list of payloads to be sent to New Relic.
+    This method usually returns a list of one element, but can be bigger if the
+    payload size is too big
+    '''
+    payload = gzip.compress(json.dumps(data).encode())
+
+    if (len(payload) < MAX_PAYLOAD_SIZE):
+        return [payload]
+
+    split_data = split_function(data)
+    return _generate_payloads(split_data[0], split_function) + \
+        _generate_payloads(split_data[1], split_function)
+
+
+def _get_license_key(license_key=None):
     '''
     This functions gets New Relic's license key from env vars.
     '''
-    return os.environ['LICENSE_KEY']
+    if license_key:
+        return license_key
+
+    return os.getenv('LICENSE_KEY', '')
 
 
-def _get_ingest_service_url(entity_type):
+##############
+#  NR Infra  #
+##############
+
+
+def _infra_enabled():
+    '''
+    This function returns whether to send info to New Relic Infrastructure.
+    Enabled by default.
+    '''
+    enable_infra = os.getenv('INFRA_ENABLED', 'true').lower()
+    return enable_infra == 'true'
+
+
+def _get_infra_request_creator(entry_type, payload, ingest_host=None, license_key=None):
+    def create_request():
+        req = request.Request(_get_infra_ingest_service_url(
+            entry_type, ingest_host), payload)
+        req.add_header('X-License-Key', _get_license_key(license_key))
+        req.add_header('Content-Encoding', 'gzip')
+        return req
+
+    return create_request
+
+
+def _get_infra_ingest_service_url(entry_type, ingest_host=None):
     '''
     Returns the ingest_service_url.
     This is a concatenation of the HOST + PATH + VERSION
     '''
-    path = INGEST_SERVICE_PATHS[entity_type]
-    return _get_ingest_service_host() + path + '/' + INGEST_SERVICE_VERSION
+    if ingest_host is None:
+        ingest_host = _get_infra_ingest_service_host()
+
+    path = INFRA_INGEST_SERVICE_PATHS[entry_type]
+    return ingest_host + path + '/' + INGEST_SERVICE_VERSION
 
 
 def _get_entry_type(log_entry):
@@ -253,42 +314,23 @@ def _get_entry_type(log_entry):
         return EntryType.OTHER
 
 
-def _get_ingest_service_host():
+def _get_infra_ingest_service_host():
     '''
-    Environment variable NR_REGION specifies the region for the ingest service.
-    Values US and EU return the default ingestion HOST for that region, but any
-    URL can be passed.
-    Default value is calculated based on the license key.
+    Service url is determined by the lincese key's region.
+    Any other URL could be passed by using the NR_INFRA_ENDPOINT env var.
     '''
-    license = os.getenv('LICENSE_KEY', '')
-    license_region = 'EU' if license.startswith('eu') else 'US'
+    region = 'EU' if _get_license_key().startswith('eu') else 'US'
+    custom_url = os.getenv('NR_INFRA_ENDPOINT')
 
-    env_ingest_region = os.getenv('NR_REGION', license_region)
+    if custom_url:
+        return custom_url
+    elif region == 'EU':
+        return EU_INFRA_INGEST_SERVICE_HOST
 
-    if env_ingest_region == 'US':
-        return US_INGEST_SERVICE_HOST
-    elif env_ingest_region == 'EU':
-        return EU_INGEST_SERVICE_HOST
-    else:
-        return env_ingest_region
+    return US_INFRA_INGEST_SERVICE_HOST
 
 
-def _generate_payloads(data):
-    '''
-    Return a list of payloads to be sent to New Relig ingest service.
-    This methos usually returns a list of one element, but can be bigger if the
-    payload size is too big
-    '''
-    payload = gzip.compress(json.dumps(data).encode())
-
-    if (len(payload) < MAX_PAYLOAD_SIZE):
-        return [payload]
-
-    split_data = _split(data)
-    return _generate_payloads(split_data[0]) + _generate_payloads(split_data[1])
-
-
-def _split(data):
+def _split_infra_payload(data):
     '''
     When data size is bigger than supported payload, it is divided in two
     different requests
@@ -299,17 +341,134 @@ def _split(data):
     half = len(logEvents) // 2
 
     return [
-        _reconstruct_data(context, entry, logEvents[:half]),
-        _reconstruct_data(context, entry, logEvents[half:])
+        _reconstruct_infra_data(context, entry, logEvents[:half]),
+        _reconstruct_infra_data(context, entry, logEvents[half:])
     ]
 
 
-def _reconstruct_data(context, entry, logEvents):
+def _reconstruct_infra_data(context, entry, logEvents):
     entry['logEvents'] = logEvents
     return {
         'context': context,
         'entry': json.dumps(entry)
     }
+
+
+################
+#  NR Logging  #
+################
+
+
+def _logging_enabled():
+    '''
+    This function returns whether to send info to New Relic Logging.
+    Disabled by default.
+    '''
+    enable_logging = os.getenv('LOGGING_ENABLED', 'false').lower()
+    return enable_logging == 'true'
+
+
+def _get_logging_request_creator(payload, ingest_url=None, license_key=None):
+    def create_request():
+        req = request.Request(
+            _get_logging_ingest_service_url(ingest_url), payload)
+        req.add_header('X-License-Key', _get_license_key(license_key))
+        req.add_header('X-Event-Source', 'logs')
+        req.add_header('Content-Encoding', 'gzip')
+        return req
+
+    return create_request
+
+
+def _get_logging_ingest_service_url(ingest_url=None):
+    '''
+    Service url is determined by the lincese key's region.
+    Any other URL could be passed by using the NR_LOGGING_ENDPOINT env var.
+    '''
+    if ingest_url:
+        return ingest_url
+
+    region = 'EU' if _get_license_key() else 'US'
+    custom_url = os.getenv('NR_LOGGING_ENDPOINT')
+
+    if custom_url:
+        return custom_url
+    elif region == 'EU':
+        return EU_LOGGING_INGEST_HOST
+
+    return US_LOGGING_INGEST_HOST
+
+
+def _package_log_payload(data):
+    '''
+    Packages up a MELT request for log messages
+    '''
+    entry = json.loads(data["entry"])
+    log_events = entry["logEvents"]
+    log_messages = []
+
+    for log_event in log_events:
+        log_message = {
+            'message': log_event['message'],
+            'timestamp': log_event['timestamp'],
+            'attributes': {
+                'aws': {
+                }
+            }
+        }
+
+        for event_key in log_event:
+            if event_key != 'id' and event_key != 'message' and event_key != 'timestamp':
+                log_message['attributes'][event_key] = log_event[event_key]
+
+        if '/aws/lambda' in entry['logGroup']:
+            match = LAMBDA_REQUEST_ID_REGEX.search(log_event['message'])
+            if match and match.group(0):
+                log_message['attributes']['aws']['lambda_request_id'] = match.group(0)
+
+        log_messages.append(log_message)
+
+    packaged_payload = [{
+        'common': {
+            'attributes': {
+                'plugin': LOGGING_PLUGIN_METADATA,
+                'aws': {
+                    'logStream': entry['logStream'],
+                    'logGroup': entry['logGroup'],
+                }
+            }
+        },
+        'logs': log_messages
+    }]
+
+    return packaged_payload
+
+
+def _split_log_payload(payload):
+    '''
+    When data size is bigger than supported payload, it is divided in two
+    different requests
+    '''
+    common = payload[0]['common']
+    logs = payload[0]['logs']
+    half = len(logs) // 2
+
+    return [
+        _reconstruct_log_payload(common, logs[:half]),
+        _reconstruct_log_payload(common, logs[half:])
+    ]
+
+
+def _reconstruct_log_payload(common, logs):
+    return [{
+        'common': common,
+        'logs': logs
+    }]
+
+
+####################
+#  Lambda handler  #
+####################
 
 
 def lambda_handler(event, context):

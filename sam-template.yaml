@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure - Cloud Integrations.
+Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging.
 Parameters:
   NRLicenseKey:
     Type: String
