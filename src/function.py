@@ -388,7 +388,7 @@ def _get_logging_ingest_service_url(ingest_url=None):
     if ingest_url:
         return ingest_url
 
-    region = 'EU' if _get_license_key() else 'US'
+    region = 'EU' if _get_license_key().startswith('eu') else 'US'
     custom_url = os.getenv('NR_LOGGING_ENDPOINT')
 
     if custom_url:
