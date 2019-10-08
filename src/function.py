@@ -13,11 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-This Lambda function receives log entries from CloudWatch Logs or S3 buckets
+This Lambda function receives log entries from CloudWatch Logs
 and pushes them to New Relic Infrastructure - Cloud integrations.
 
-It expects to be invoked based on CloudWatch Logs streams although it's
-ready to read log files from S3 buckets too.
+It expects to be invoked based on CloudWatch Logs streams.
 
 New Relic's license key must be encrypted using KMS following these
 instructions:
@@ -38,11 +37,10 @@ import os
 import gzip
 import json
 import time
-import boto3
 import re
+import datetime
 
 from urllib import request
-from io import StringIO
 from base64 import b64decode
 from enum import Enum
 
@@ -70,7 +68,7 @@ class EntryType(Enum):
 
 INGEST_SERVICE_VERSION = 'v1'
 US_LOGGING_INGEST_HOST = 'https://log-api.newrelic.com/log/v1'
-EU_LOGGING_INGEST_HOST = 'https://insights-collector.eu01.nr-data.net/log/v1'
+EU_LOGGING_INGEST_HOST = 'https://log-api.eu.newrelic.com/log/v1'
 US_INFRA_INGEST_SERVICE_HOST = 'https://cloud-collector.newrelic.com'
 EU_INFRA_INGEST_SERVICE_HOST = 'https://cloud-collector.eu01.nr-data.net'
 INFRA_INGEST_SERVICE_PATHS = {
@@ -81,7 +79,7 @@ INFRA_INGEST_SERVICE_PATHS = {
 
 LAMBDA_REQUEST_ID_REGEX = re.compile(
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-LOGGING_LAMBDA_VERSION = '1.0.1'
+LOGGING_LAMBDA_VERSION = '1.0.2'
 LOGGING_PLUGIN_METADATA = {
     'type': 'lambda',
     'version': LOGGING_LAMBDA_VERSION
@@ -158,31 +156,11 @@ def http_retryable(func):
 def _get_log_type(event):
     '''
     This function determines if the given event is triggered by
-    CloudWatch Logs or S3's ObjectCreated action.
+    CloudWatch Logs.
     '''
     if 'awslogs' in event:
         return 'cw_logs'
-    elif ('Records' in event
-            and 's3' in event['Records'][0]
-            and 'ObjectCreated' in event['Records'][0]['eventName']):
-
-        return 's3'
-
     return 'unknown'
-
-
-def _get_s3_data(bucket, key):
-    '''
-    This function gets a specific log file from the given S3 bucket and
-    decompresses it.
-    '''
-    s3_client = boto3.client('s3')
-    data = s3_client.get_object(Bucket=bucket, Key=key)['Body'].read()
-
-    if key.split('.')[-1] == 'gz':
-        data = gzip.GzipFile(fileobj=StringIO(data)).read()
-
-    return data
 
 
 def _send_log_entry(log_entry, context):
@@ -236,7 +214,8 @@ def _send_payload(request_creator, retry=False):
     except BadRequestException as e:
         print(e)
     else:
-        print('Log entry sent. Response code: {}'.format(response.getcode()))
+        print('Log entry sent. Response code: {}. url: {}'.format(response.getcode(),
+                                                                  response.geturl()))
 
 
 def _generate_payloads(data, split_function):
@@ -263,6 +242,15 @@ def _get_license_key(license_key=None):
         return license_key
 
     return os.getenv('LICENSE_KEY', '')
+
+
+def _debug_logging_enabled():
+    '''
+    Determines whether or not debug logging should be enabled based on the env var.
+    Defaults to false.
+    '''
+    enable_debug = os.getenv('DEBUG_LOGGING_ENABLED', 'false').lower()
+    return enable_debug == 'true'
 
 
 ##############
@@ -483,17 +471,19 @@ def lambda_handler(event, context):
         # CloudWatch Log entries are compressed and encoded in Base64
         event_data = b64decode(event['awslogs']['data'])
         log_entry = gzip.decompress(event_data).decode('utf-8')
+
+        # output additional helpful info if debug logging is enabled
+        # not enabled by default since parsing into json might be slow
+        if _debug_logging_enabled():
+            log_entry_json = json.loads(log_entry)
+            # calling '[0]' without a safety check looks sketchy, but Cloudwatch is never going
+            # to send us a log without at least one event
+            print('logGroup: {}, logStream: {}, timestamp: {}'.format(
+                log_entry_json['logGroup'], log_entry_json['logStream'],
+                datetime.datetime.fromtimestamp(
+                    log_entry_json['logEvents'][0]['timestamp']/1000.0)))
+
         _send_log_entry(log_entry, context)
-
-    elif log_type == 's3':
-        bucket = event['Records'][0]['s3']['bucket']['name']
-        key = event['Records'][0]['s3']['object']['key']
-
-        data = _get_s3_data(bucket, key)
-
-        # There are many log entries in a log file, so send them one by one
-        for log_line in data.splitlines():
-            _send_log_entry(log_line, context)
 
     else:
         print('Not supported')
