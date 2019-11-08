@@ -44,6 +44,13 @@ from urllib import request
 from base64 import b64decode
 from enum import Enum
 
+try:
+    import newrelic.agent
+except ImportError:
+    pass
+else:
+    # The agent shouldn't be running on this function. Ensure it is shutdown.
+    newrelic.agent.shutdown_agent()
 
 # Retrying configuration.
 # Increasing these numbers will make the function longer in case of
