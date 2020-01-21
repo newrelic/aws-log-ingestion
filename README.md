@@ -15,6 +15,7 @@ You can configure forwarding of logs to New Relic Infrastructure and/or New Reli
 | LICENSE_KEY | Needed for sending data to both Infrastructure and Logging. If set, enables forwarding logs to New Relic Infrastructure by default | Your New Relic license key, which you can get by following [these instructions](https://docs.newrelic.com/docs/accounts/install-new-relic/account-setup/license-key).|
 | LOGGING_ENABLED | determines if logs are forwarded to New Relic Logging | "false" by default
 | INFRA_ENABLED | determines if logs are forwarded to New Relic Infrastructure | "true" by default
+| DEBUG_LOGGING_ENABLED | determines if additional, debug logs are output during ingestion runs | "false" by default
 
 
 ### Optional configuration

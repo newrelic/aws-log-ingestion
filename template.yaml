@@ -7,15 +7,25 @@ Parameters:
     Description: Your NewRelic license key. You may omit it when deploying the function.
     Default: "YOUR_LICENSE_KEY"
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: NewRelic-log-ingestion
+    Description: Send log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
+    Author: New Relic
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE
+    ReadmeUrl: README.md
+    HomePageUrl: https://github.com/newrelic/aws-log-ingestion
+    SemanticVersion: 2.1.0
+    SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
+
 Resources:
   NewRelicLogIngestionFunction:
-    Type: 'AWS::Serverless::Function'
+    Type: AWS::Serverless::Function
     Properties:
-      Runtime: python3.6
+      CodeUri: src/
+      Runtime: python3.7
       Handler: function.lambda_handler
-      CodeUri:
-        Bucket: nr-serverless-applications
-        Key: newrelic-log-ingestion.zip
       FunctionName: newrelic-log-ingestion
       Timeout: 30
       Environment:

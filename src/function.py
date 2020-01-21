@@ -1,5 +1,5 @@
 '''
-Copyright 2019 New Relic, Inc.
+Copyright 2017 New Relic, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ https://docs.newrelic.com/
 import os
 import gzip
 import json
-import time
 import re
 import datetime
 
@@ -44,6 +43,16 @@ from urllib import request
 from base64 import b64decode
 from enum import Enum
 
+import aiohttp
+import asyncio
+
+try:
+    import newrelic.agent
+except ImportError:
+    pass
+else:
+    # The agent shouldn't be running on this function. Ensure it is shutdown.
+    newrelic.agent.shutdown_agent()
 
 # Retrying configuration.
 # Increasing these numbers will make the function longer in case of
@@ -58,6 +67,11 @@ INITIAL_BACKOFF = 1
 BACKOFF_MULTIPLIER = 2
 # Max length in bytes of the payload
 MAX_PAYLOAD_SIZE = 1000 * 1024
+
+VPC_LOG_GROUP_PATTERN = re.compile(r'"logGroup":\s*"/aws/vpc/flow-logs"')
+LAMBDA_LOG_GROUP_PATTERN = re.compile(r'"logGroup":\s*"/aws/lambda/')
+LAMBDA_NR_MONITORING_PATTERN = re.compile(r'"NR_LAMBDA_MONITORING\\?"')
+REPORT_PATTERN = re.compile("REPORT RequestId:")
 
 
 class EntryType(Enum):
@@ -94,119 +108,117 @@ class BadRequestException(Exception):
     pass
 
 
-def http_retryable(func):
-    '''
-    Decorator that retries HTTP calls.
-
-    The decorated function should perform an HTTP request and return its
-    response.
-
-    That function will be called until it returns a 200 OK response or
-    MAX_RETRIES is reached. In that case a MaxRetriesException will be raised.
-
-    If the function returns a 4XX Bad Request, it will raise a BadRequestException
-    without any retry unless it returns a 429 Too many requests. In that case, request
-    will be also retried.
-    '''
+async def http_post(session, url, data, headers):
     def _format_error(e, text):
         return '{}. {}'.format(e, text)
 
-    def wrapper_func():
-        backoff = INITIAL_BACKOFF
-        retries = 0
+    backoff = INITIAL_BACKOFF
+    retries = 0
 
-        while retries < MAX_RETRIES:
-            if retries > 0:
-                print('Retrying in {} seconds'.format(backoff))
-                time.sleep(backoff)
-                backoff *= BACKOFF_MULTIPLIER
+    while retries < MAX_RETRIES:
+        if retries > 0:
+            print('Retrying in {} seconds'.format(backoff))
+            await asyncio.sleep(backoff)
+            backoff *= BACKOFF_MULTIPLIER
 
-            retries += 1
+        retries += 1
 
-            try:
-                response = func()
+        try:
+            resp = await session.post(url, data=data, headers=headers)
+            resp.raise_for_status()
+            return resp.status, resp.url
+        except aiohttp.ClientResponseError as e:
+            if e.status == 400:
+                raise BadRequestException(
+                    _format_error(e, 'Unexpected payload'))
+            elif e.status == 403:
+                raise BadRequestException(
+                    _format_error(e, 'Review your license key'))
+            elif e.status == 404:
+                raise BadRequestException(_format_error(
+                    e, 'Review the region endpoint'))
+            elif e.status == 429:
+                print('There was a {} error. Reason: {}'.format(e.status, e.message))
+                # Now retry the request
+            elif 400 <= e.status < 500:
+                raise BadRequestException(e)
 
-            # This exception is raised when receiving a non-200 response
-            except request.HTTPError as e:
-                if e.getcode() == 400:
-                    raise BadRequestException(
-                        _format_error(e, 'Unexpected payload'))
-                elif e.getcode() == 403:
-                    raise BadRequestException(
-                        _format_error(e, 'Review your license key'))
-                elif e.getcode() == 404:
-                    raise BadRequestException(_format_error(
-                        e, 'Review the region endpoint'))
-                elif e.getcode() == 429:
-                    print('There was an error. Reason: {}'.format(e.reason))
-                elif 400 <= e.getcode() < 500:
-                    raise BadRequestException(e)
-
-            # This exception is raised when the service is not responding
-            except request.URLError as e:
-                print('There was an error. Reason: {}'.format(e.reason))
-            else:
-                return response
-
-        raise MaxRetriesException()
-
-    return wrapper_func
+    raise MaxRetriesException()
 
 
-def _get_log_type(event):
-    '''
-    This function determines if the given event is triggered by
-    CloudWatch Logs.
-    '''
-    if 'awslogs' in event:
-        return 'cw_logs'
-    return 'unknown'
+def _filter_log_lines(log_entry):
+    """
+    The EntryType.LAMBDA check guarantees that we'll be left with at least one log after filtering
+    """
+    log_entry_json = json.loads(log_entry)
+    final_log_events = []
+    for event in log_entry_json['logEvents']:
+        message = event['message']
+        if REPORT_PATTERN.search(message) or LAMBDA_NR_MONITORING_PATTERN.search(message):
+            final_log_events.append(event)
+
+    log_entry_json['logEvents'] = final_log_events
+    return json.dumps(log_entry_json)
 
 
-def _send_log_entry(log_entry, context):
+async def _send_log_entry(log_entry, context):
     '''
     This function sends the log entry to New Relic Infrastructure's ingest
     server. If it is necessary, entries will be split in different payloads
     Log entry is sent along with the Lambda function's execution context
     '''
-    data = {
-        'context': {
-            'function_name': context.function_name,
-            'invoked_function_arn': context.invoked_function_arn,
-            'log_group_name': context.log_group_name,
-            'log_stream_name': context.log_stream_name
-        },
-        'entry': log_entry
-    }
     entry_type = _get_entry_type(log_entry)
 
-    # Both Infrastructure and Logging require a "LICENSE_KEY" environment variable.
-    # In order to send data to the Infrastructure Pipeline, the customer doesn't need
-    # to do anything. To disable it, they'll set "INFRA_ENABLED" to "false".
-    # To send data to the Logging Pipeline, an environment variable called "LOGGING_ENABLED"
-    # is required and needs to be set to "true". To disable it, they don't need to do anything,
-    # it is disabled by default
-    # Instruction for how to find these keys are in the README.md
-    if _infra_enabled():
-        for payload in _generate_payloads(data, _split_infra_payload):
-            _send_payload(_get_infra_request_creator(entry_type, payload), True)
-    if _logging_enabled():
-        for payload in _generate_payloads(_package_log_payload(data), _split_log_payload):
-            _send_payload(_get_logging_request_creator(payload))
+    context = {
+        'function_name': context.function_name,
+        'invoked_function_arn': context.invoked_function_arn,
+        'log_group_name': context.log_group_name,
+        'log_stream_name': context.log_stream_name
+    }
+
+    async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=3)
+    ) as session:
+        # Both Infrastructure and Logging require a "LICENSE_KEY" environment variable.
+        # In order to send data to the Infrastructure Pipeline, the customer doesn't need
+        # to do anything. To disable it, they'll set "INFRA_ENABLED" to "false".
+        # To send data to the Logging Pipeline, an environment variable called "LOGGING_ENABLED"
+        # is required and needs to be set to "true". To disable it, they don't need to do anything,
+        # it is disabled by default
+        # Instruction for how to find these keys are in the README.md
+        requests = []
+        if _infra_enabled():
+            if entry_type == EntryType.LAMBDA:
+                # If this is one of our lambda entries, we should only send the log lines we
+                # actually care about
+                data = {
+                    'context': context,
+                    'entry': _filter_log_lines(log_entry)
+                }
+            else:
+                # VPC logs are infra requests that aren't Lambda invocations
+                data = {
+                    'context': context,
+                    'entry': log_entry
+                }
+            for payload in _generate_payloads(data, _split_infra_payload):
+                requests.append(_send_payload(
+                    _get_infra_request_creator(entry_type, payload), session, True))
+
+        if _logging_enabled():
+            data = {
+                'context': context,
+                'entry': log_entry
+            }
+            for payload in _generate_payloads(_package_log_payload(data), _split_log_payload):
+                requests.append(_send_payload(_get_logging_request_creator(payload), session))
+        return await asyncio.gather(*requests)
 
 
-def _send_payload(request_creator, retry=False):
-    '''
-    This function sends the given payload to New Relic,
-    retrying the request if needed.
-    '''
-    @http_retryable
-    def do_request():
-        req = request_creator()
-        return request.urlopen(req)
-
+async def _send_payload(request_creator, session, retry=False):
     try:
-        response = do_request()
+        req = request_creator()
+        status, url = await http_post(session, req.get_full_url(), req.data, req.headers)
     except MaxRetriesException as e:
         print('Retry limit reached. Failed to send log entry.')
         if retry:
@@ -214,8 +226,8 @@ def _send_payload(request_creator, retry=False):
     except BadRequestException as e:
         print(e)
     else:
-        print('Log entry sent. Response code: {}. url: {}'.format(response.getcode(),
-                                                                  response.geturl()))
+        print('Log entry sent. Response code: {}. url: {}'.format(status, url))
+        return status
 
 
 def _generate_payloads(data, split_function):
@@ -294,9 +306,10 @@ def _get_entry_type(log_entry):
     '''
     Returns the EntryType of the entry based on some text found in its value.
     '''
-    if '"logGroup":"/aws/vpc/flow-logs"' in log_entry:
+    if VPC_LOG_GROUP_PATTERN.search(log_entry):
         return EntryType.VPC
-    elif '"logGroup":"/aws/lambda/' in log_entry and ',\\"NR_LAMBDA_MONITORING\\",' in log_entry:
+    elif LAMBDA_LOG_GROUP_PATTERN.search(log_entry) \
+            and LAMBDA_NR_MONITORING_PATTERN.search(log_entry):
         return EntryType.LAMBDA
     else:
         return EntryType.OTHER
@@ -465,26 +478,21 @@ def lambda_handler(event, context):
     Changing the name of this function will require changes in Lambda
     function's configuration.
     '''
-    log_type = _get_log_type(event)
+    # CloudWatch Log entries are compressed and encoded in Base64
+    event_data = b64decode(event['awslogs']['data'])
+    log_entry = gzip.decompress(event_data).decode('utf-8')
 
-    if log_type == 'cw_logs':
-        # CloudWatch Log entries are compressed and encoded in Base64
-        event_data = b64decode(event['awslogs']['data'])
-        log_entry = gzip.decompress(event_data).decode('utf-8')
+    # output additional helpful info if debug logging is enabled
+    # not enabled by default since parsing into json might be slow
+    if _debug_logging_enabled():
+        log_entry_json = json.loads(log_entry)
+        # calling '[0]' without a safety check looks sketchy, but Cloudwatch is never going
+        # to send us a log without at least one event
+        print('logGroup: {}, logStream: {}, timestamp: {}'.format(
+            log_entry_json['logGroup'], log_entry_json['logStream'],
+            datetime.datetime.fromtimestamp(
+                log_entry_json['logEvents'][0]['timestamp']/1000.0)))
 
-        # output additional helpful info if debug logging is enabled
-        # not enabled by default since parsing into json might be slow
-        if _debug_logging_enabled():
-            log_entry_json = json.loads(log_entry)
-            # calling '[0]' without a safety check looks sketchy, but Cloudwatch is never going
-            # to send us a log without at least one event
-            print('logGroup: {}, logStream: {}, timestamp: {}'.format(
-                log_entry_json['logGroup'], log_entry_json['logStream'],
-                datetime.datetime.fromtimestamp(
-                    log_entry_json['logEvents'][0]['timestamp']/1000.0)))
-
-        _send_log_entry(log_entry, context)
-
-    else:
-        print('Not supported')
-        print(event)
+    asyncio.run(_send_log_entry(log_entry, context))
+    # This makes it possible to chain this CW log consumer with others using a success destination
+    return event
