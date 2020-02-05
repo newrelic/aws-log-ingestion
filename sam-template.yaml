@@ -6,6 +6,14 @@ Parameters:
     Type: String
     Description: Your NewRelic license key. You may omit it when deploying the function.
     Default: "YOUR_LICENSE_KEY"
+  NRLoggingEnabled:
+    Type: String
+    Description: Determines if logs are forwarded to New Relic Logging
+    Default: "False"
+  NRInfraLogging:
+    Type: String
+    Description: Determines if logs are forwarded to New Relic Infrastructure
+    Default: "False"
 
 Resources:
   NewRelicLogIngestionFunction:
@@ -19,8 +27,10 @@ Resources:
       FunctionName: newrelic-log-ingestion
       Timeout: 30
       Environment:
-        Variables: 
+        Variables:
           LICENSE_KEY: !Ref NRLicenseKey
+          LOGGING_ENABLED: !Ref NRLoggingEnabled
+          INFRA_ENABLED: !Ref NRInfraLogging
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
