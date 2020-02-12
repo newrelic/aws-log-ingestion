@@ -1,0 +1,50 @@
+# To install the New Relic log ingestion function follow these steps:
+#
+# 1. Install Serverless: npm install -g serverless
+# 2. Install the serverless-python-requirements plugin: sls plugin install -n serverless-python-requirements
+# 3. If not running Linux, install Docker: https://docs.docker.com/install/
+# 4. If using a custom IAM role, set the "role" below to your custom role ARN
+# 5. Set the LICENSE_KEY environment variable: export LICENSE_KEY=your-licnese-key-here
+#    More info: https://docs.newrelic.com/docs/accounts/install-new-relic/account-setup/license-key
+# 6. Deploy the function: sls deploy --region <your aws region here>
+
+service: newrelic-log-ingestion
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: production
+  timeout: 30
+
+  # Uncomment this line to use your own IAM role
+  #role: arn:aws:iam::YourAccountNumber:role/YourIamRole
+
+  environment:
+    # Determines if logs are forwarded to New Relic Infrastructure
+    INFRA_ENABLED: ${env:INFRA_ENABLED, "False"}
+    # Your NewRelic license key
+    LICENSE_KEY: ${env:LICENSE_KEY}
+    # Determines if logs are forwarded to New Relic Logging
+    LOGGING_ENABLED: ${env:LOGGING_ENABLED, "False"}
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    fileName: ./src/requirements.txt
+
+package:
+  exclude:
+    - ./**
+  include:
+
+    - ./LICENSE
+    - ./src/function.py
+
+functions:
+  newrelic-log-ingestion:
+    description: Send log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
+    handler: src/function.lambda_handler
+    name: newrelic-log-ingestion
+
+plugins:
+  - serverless-python-requirements
