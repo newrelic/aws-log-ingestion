@@ -72,7 +72,6 @@ to deploy the log ingestion function manually.
 
 Additional notes:
 
-* To set `INFRA_ENABLED`: `sam build ... --parameter-overrides 'ParameterKey=NRInfraEnabled,ParameterValue=True'`
 * To set `LOGGING_ENABLED`: `sam build ... --parameter-overrides 'ParameterKey=NRLoggingEnabled,ParameterValue=True'`
 
 ### Serverless
@@ -87,5 +86,4 @@ Additional notes:
 
 Additional notes:
 
-* To set `INFRA_ENABLED`: `export INFRA_ENABLED=True` (prior to deploy)
 * To set `LOGGING_ENABLED`: `export LOGGING_ENABLED=True` (prior to deploy)

@@ -11,7 +11,7 @@ provider:
 
   environment:
     # Determines if logs are forwarded to New Relic Infrastructure
-    INFRA_ENABLED: ${env:INFRA_ENABLED, "False"}
+    INFRA_ENABLED: ${env:INFRA_ENABLED, "True"}
     # Your NewRelic license key
     LICENSE_KEY: ${env:LICENSE_KEY}
     # Determines if logs are forwarded to New Relic Logging

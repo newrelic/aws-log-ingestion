@@ -13,7 +13,7 @@ Parameters:
   NRInfraLogging:
     Type: String
     Description: Determines if logs are forwarded to New Relic Infrastructure
-    Default: "False"
+    Default: "True"
 
 Metadata:
   AWS::ServerlessRepo::Application:
