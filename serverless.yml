@@ -1,13 +1,3 @@
-# To install the New Relic log ingestion function follow these steps:
-#
-# 1. Install Serverless: npm install -g serverless
-# 2. Install the serverless-python-requirements plugin: sls plugin install -n serverless-python-requirements
-# 3. If not running Linux, install Docker: https://docs.docker.com/install/
-# 4. If using a custom IAM role, set the "role" below to your custom role ARN
-# 5. Set the LICENSE_KEY environment variable: export LICENSE_KEY=your-licnese-key-here
-#    More info: https://docs.newrelic.com/docs/accounts/install-new-relic/account-setup/license-key
-# 6. Deploy the function: sls deploy --region <your aws region here>
-
 service: newrelic-log-ingestion
 
 provider:
