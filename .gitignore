@@ -1,3 +1,5 @@
 .idea/
 
+packaged.yaml
+
 .aws-sam/

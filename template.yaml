@@ -13,7 +13,7 @@ Parameters:
   NRInfraLogging:
     Type: String
     Description: Determines if logs are forwarded to New Relic Infrastructure
-    Default: "False"
+    Default: "True"
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -24,7 +24,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.1.0
+    SemanticVersion: 2.1.2
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -37,7 +37,7 @@ Resources:
       FunctionName: newrelic-log-ingestion
       Timeout: 30
       Environment:
-        Variables:
+        Variables: 
           LICENSE_KEY: !Ref NRLicenseKey
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging

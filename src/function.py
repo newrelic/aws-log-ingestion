@@ -72,6 +72,8 @@ VPC_LOG_GROUP_PATTERN = re.compile(r'"logGroup":\s*"/aws/vpc/flow-logs"')
 LAMBDA_LOG_GROUP_PATTERN = re.compile(r'"logGroup":\s*"/aws/lambda/')
 LAMBDA_NR_MONITORING_PATTERN = re.compile(r'"NR_LAMBDA_MONITORING\\?"')
 REPORT_PATTERN = re.compile("REPORT RequestId:")
+TIMEOUT_PATTERN = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z\s[\d\w-]+\sTask timed out after [\d.]+ seconds")
 
 
 class EntryType(Enum):
@@ -154,7 +156,8 @@ def _filter_log_lines(log_entry):
     final_log_events = []
     for event in log_entry_json['logEvents']:
         message = event['message']
-        if REPORT_PATTERN.search(message) or LAMBDA_NR_MONITORING_PATTERN.search(message):
+        if REPORT_PATTERN.search(message) or LAMBDA_NR_MONITORING_PATTERN.search(message)\
+                or TIMEOUT_PATTERN.search(message):
             final_log_events.append(event)
 
     log_entry_json['logEvents'] = final_log_events
