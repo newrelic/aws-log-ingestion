@@ -312,7 +312,8 @@ def _get_entry_type(log_entry):
     if VPC_LOG_GROUP_PATTERN.search(log_entry):
         return EntryType.VPC
     elif LAMBDA_LOG_GROUP_PATTERN.search(log_entry) \
-            and LAMBDA_NR_MONITORING_PATTERN.search(log_entry):
+            and (LAMBDA_NR_MONITORING_PATTERN.search(log_entry)
+                 or TIMEOUT_PATTERN.search(log_entry)):
         return EntryType.LAMBDA
     else:
         return EntryType.OTHER
