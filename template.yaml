@@ -1,19 +1,34 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging.
+Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
 Parameters:
   NRLicenseKey:
     Type: String
     Description: Your NewRelic license key. You may omit it when deploying the function.
     Default: "YOUR_LICENSE_KEY"
+    NoEcho: true
   NRLoggingEnabled:
     Type: String
     Description: Determines if logs are forwarded to New Relic Logging
-    Default: "False"
+    Default: False
+    AllowedValues:
+      - True
+      - False
   NRInfraLogging:
     Type: String
     Description: Determines if logs are forwarded to New Relic Infrastructure
-    Default: "True"
+    Default: True
+    AllowedValues:
+      - True
+      - False
+  MemorySize:
+    Type: Number
+    Description: Memory size for the New Relic Log Ingestion Lambda function
+    Default: 128
+  Timeout:
+    Type: Number
+    Description: Timeout for the New Relic Log Ingestion Lambda function
+    Default: 30
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -24,7 +39,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.1.3
+    SemanticVersion: 2.2.0
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -32,10 +47,14 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
-      Runtime: python3.7
+      Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
       FunctionName: newrelic-log-ingestion
-      Timeout: 30
+      MemorySize:
+        Ref: MemorySize
+      Runtime: python3.7
+      Timeout:
+        Ref: Timeout
       Environment:
         Variables: 
           LICENSE_KEY: !Ref NRLicenseKey
