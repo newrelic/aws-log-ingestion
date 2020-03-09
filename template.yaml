@@ -10,17 +10,17 @@ Parameters:
   NRLoggingEnabled:
     Type: String
     Description: Determines if logs are forwarded to New Relic Logging
-    Default: False
+    Default: 'False'
     AllowedValues:
-      - True
-      - False
+      - 'True'
+      - 'False'
   NRInfraLogging:
     Type: String
     Description: Determines if logs are forwarded to New Relic Infrastructure
-    Default: True
+    Default: 'True'
     AllowedValues:
-      - True
-      - False
+      - 'True'
+      - 'False'
   MemorySize:
     Type: Number
     Description: Memory size for the New Relic Log Ingestion Lambda function
@@ -39,7 +39,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.2.0
+    SemanticVersion: 2.2.1
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
