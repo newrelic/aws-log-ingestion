@@ -4,8 +4,7 @@ Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastruct
 Parameters:
   NRLicenseKey:
     Type: String
-    Description: Your NewRelic license key. You may omit it when deploying the function.
-    Default: "YOUR_LICENSE_KEY"
+    Description: Your NewRelic license key.
     NoEcho: true
   NRLoggingEnabled:
     Type: String
@@ -29,6 +28,16 @@ Parameters:
     Type: Number
     Description: Timeout for the New Relic Log Ingestion Lambda function
     Default: 30
+  FunctionRole:
+    Type: String
+    Description: |
+      IAM Role name that this function will assume. Should provide the AWSLambdaBasicExecutionRole policy. If not
+      specified, an appropriate Role will be created, which will require CAPABILITY_IAM to be acknowledged.
+    Default: ''
+
+Conditions:
+  NoRole: !Equals ['', !Ref FunctionRole]
+  NoCap: !Not [ !Equals ['', !Ref FunctionRole] ]
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -39,12 +48,32 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.2.1
+    SemanticVersion: 2.2.2
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
+  NewRelicLogIngestionFunctionNoCap:
+    Type: AWS::Serverless::Function
+    Condition: NoCap
+    Properties:
+      CodeUri: src/
+      Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
+      Handler: function.lambda_handler
+      FunctionName: newrelic-log-ingestion
+      MemorySize:
+        Ref: MemorySize
+      Runtime: python3.7
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${FunctionRole}
+      Timeout:
+        Ref: Timeout
+      Environment:
+        Variables: 
+          LICENSE_KEY: !Ref NRLicenseKey
+          LOGGING_ENABLED: !Ref NRLoggingEnabled
+          INFRA_ENABLED: !Ref NRInfraLogging
   NewRelicLogIngestionFunction:
     Type: AWS::Serverless::Function
+    Condition: NoRole
     Properties:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
@@ -56,15 +85,7 @@ Resources:
       Timeout:
         Ref: Timeout
       Environment:
-        Variables: 
+        Variables:
           LICENSE_KEY: !Ref NRLicenseKey
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
-
-  LambdaInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref NewRelicLogIngestionFunction
-      Action: lambda:InvokeFunction
-      Principal: !Sub logs.${AWS::Region}.amazonaws.com
-      SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*

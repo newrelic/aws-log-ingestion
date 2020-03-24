@@ -1,8 +1,9 @@
 -i https://pypi.org/simple
-aiohttp==3.6.2
+aiohttp==4.0.0a1
 async-timeout==3.0.1
 attrs==19.3.0
 chardet==3.0.4
-idna==2.8
-multidict==4.7.3
+idna==2.9
+multidict==4.7.5
+typing-extensions==3.7.4.1
 yarl==1.4.2
