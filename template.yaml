@@ -48,13 +48,14 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.2.2
+    SemanticVersion: 2.2.3
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
   NewRelicLogIngestionFunctionNoCap:
     Type: AWS::Serverless::Function
     Condition: NoCap
+    DeletionPolicy: Delete
     Properties:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
@@ -74,6 +75,7 @@ Resources:
   NewRelicLogIngestionFunction:
     Type: AWS::Serverless::Function
     Condition: NoRole
+    DeletionPolicy: Delete
     Properties:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
