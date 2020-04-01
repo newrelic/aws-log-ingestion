@@ -1,6 +1,6 @@
 # AWS - New Relic log ingestion
 
-AWS Serverless Application that sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging.
+AWS Serverless Application that sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging.
 
 ## Pre-requisites
 

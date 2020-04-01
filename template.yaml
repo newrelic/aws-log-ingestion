@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
+Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
 Parameters:
   NRLicenseKey:
     Type: String
@@ -42,13 +42,13 @@ Conditions:
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: NewRelic-log-ingestion
-    Description: Send log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
+    Description: Send log data from CloudWatch Logs to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
     Author: New Relic
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.3.0
+    SemanticVersion: 2.3.1
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -58,7 +58,7 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       CodeUri: src/
-      Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
+      Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
       FunctionName: newrelic-log-ingestion
       MemorySize:
@@ -78,7 +78,7 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       CodeUri: src/
-      Description: Sends log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud integrations) and New Relic Logging
+      Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
       FunctionName: newrelic-log-ingestion
       MemorySize:
@@ -91,3 +91,11 @@ Resources:
           LICENSE_KEY: !Ref NRLicenseKey
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: newrelic-log-ingestion
+      Action: lambda:InvokeFunction
+      Principal: !Sub logs.${AWS::Region}.amazonaws.com
+      SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+
