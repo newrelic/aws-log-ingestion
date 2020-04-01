@@ -48,7 +48,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.3.1
+    SemanticVersion: 2.3.2
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -93,9 +93,17 @@ Resources:
           INFRA_ENABLED: !Ref NRInfraLogging
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
+    Condition: NoRole
     Properties:
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Ref NewRelicLogIngestionFunction
       Action: lambda:InvokeFunction
       Principal: !Sub logs.${AWS::Region}.amazonaws.com
       SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
-
+  LambdaInvokePermissionNoCap:
+    Type: AWS::Lambda::Permission
+    Condition: NoCap
+    Properties:
+      FunctionName: !Ref NewRelicLogIngestionFunctionNoCap
+      Action: lambda:InvokeFunction
+      Principal: !Sub logs.${AWS::Region}.amazonaws.com
+      SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
