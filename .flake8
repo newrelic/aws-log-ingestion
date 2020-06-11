@@ -1,0 +1,3 @@
+[flake8]
+exclude = .grand-central-build-dependencies-cache/,.aws-sam/
+max-line-length = 99

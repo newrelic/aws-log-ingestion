@@ -1,5 +1,22 @@
-.idea/
+.DS_Store
+
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache
+
+*.iml
+.grand-central-build-dependencies-cache
+.venv
+
+.idea
+.vscode
 
 packaged.yaml
-
 .aws-sam/
+/src/requirements.txt
+
+.serverless
+node_modules
+package.json
+package-lock.json
