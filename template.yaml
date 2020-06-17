@@ -98,7 +98,7 @@ Resources:
       FunctionName: !GetAtt NewRelicLogIngestionFunctionNoCap.Arn 
       Action: lambda:InvokeFunction
       Principal: !Sub logs.${AWS::Region}.amazonaws.com
-      SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+      SourceArn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
@@ -107,5 +107,5 @@ Resources:
       FunctionName: !GetAtt NewRelicLogIngestionFunction.Arn 
       Action: lambda:InvokeFunction
       Principal: !Sub logs.${AWS::Region}.amazonaws.com
-      SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+      SourceArn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
 
