@@ -1,0 +1,284 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "466768951184",
+  "logGroup": "/aws/lambda/HeathersBebeFunction3",
+  "logStream": "2019/10/01/[$LATEST]be209af3265a4fd7b2d0ca960c5689c7",
+  "subscriptionFilters": [
+    "NewRelicLogStreaming"
+  ],
+  "logEvents": [
+    {
+      "id": "34997839332562312964896255821726851127990452037489459200",
+      "timestamp": 1569961215255,
+      "message": [
+        1,
+        "NR_LAMBDA_MONITORING",
+        {
+          "metadata": {
+            "protocol_version": 17,
+            "execution_environment": "AWS_Lambda_python3.6",
+            "agent_version": "5.0.2.126",
+            "arn": "arn:aws:lambda:us-west-2:466768951184:function:HeathersBebeFunction3"
+          },
+          "data": {
+            "analytic_event_data": [
+              null,
+              {
+                "reservoir_size": 1200,
+                "events_seen": 1
+              },
+              [
+                [
+                  {
+                    "timestamp": 1569959380529,
+                    "duration": 0.00015878677368164062,
+                    "type": "Transaction",
+                    "name": "OtherTransaction/Function/HeathersBebeFunction3",
+                    "totalTime": 0.00015878677368164062
+                  },
+                  {},
+                  {
+                    "aws.requestId": "57a9aa12-96bf-4065-99f7-f27a4e5fce52",
+                    "aws.lambda.arn": "arn:aws:lambda:us-west-2:466768951184:function:HeathersBebeFunction3",
+                    "aws.lambda.coldStart": true
+                  }
+                ]
+              ]
+            ],
+            "metric_data": [
+              null,
+              1569959380.5096166,
+              1569959380.5503905,
+              [
+                [
+                  {
+                    "name": "Supportability/Python/Application/Registration/Duration",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.16022109985351562,
+                    0.16022109985351562,
+                    0.16022109985351562,
+                    0.16022109985351562,
+                    0.025670800838270225
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Python/Application/Registration/Attempts",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                  ]
+                ],
+                [
+                  {
+                    "name": "OtherTransaction/Function/HeathersBebeFunction3",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    2.521323949622456e-08
+                  ]
+                ],
+                [
+                  {
+                    "name": "OtherTransaction/all",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    2.521323949622456e-08
+                  ]
+                ],
+                [
+                  {
+                    "name": "OtherTransactionTotalTime/Function/HeathersBebeFunction3",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    2.521323949622456e-08
+                  ]
+                ],
+                [
+                  {
+                    "name": "OtherTransactionTotalTime",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    0.00015878677368164062,
+                    2.521323949622456e-08
+                  ]
+                ],
+                [
+                  {
+                    "name": "CPU/User Time",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                [
+                  {
+                    "name": "CPU/User/Utilization",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                [
+                  {
+                    "name": "Memory/Physical",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    28.75,
+                    28.75,
+                    28.75,
+                    28.75,
+                    826.5625
+                  ]
+                ],
+                [
+                  {
+                    "name": "Instance/Reporting",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Python/RequestSampler/requests",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Python/RequestSampler/samples",
+                    "scope": ""
+                  },
+                  [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Events/TransactionError/Seen",
+                    "scope": ""
+                  },
+                  [
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Events/TransactionError/Sent",
+                    "scope": ""
+                  },
+                  [
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Events/Customer/Seen",
+                    "scope": ""
+                  },
+                  [
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ],
+                [
+                  {
+                    "name": "Supportability/Events/Customer/Sent",
+                    "scope": ""
+                  },
+                  [
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

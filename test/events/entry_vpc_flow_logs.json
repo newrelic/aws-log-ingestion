@@ -1,0 +1,16 @@
+{
+    "messageType": "DATA_MESSAGE",
+    "owner": "463657938898",
+    "logGroup": "/aws/vpc/flow-logs",
+    "logStream": "eni-9f825df9-all",
+    "subscriptionFilters": [
+        "vpc_go"
+    ],
+    "logEvents": [
+        {
+            "id": "34542401864989154948626167510903787499092146739808501760",
+            "timestamp": 1548934870000,
+            "message": "2 463657938898 eni-9f825df9 - - - - - - - 1548934870 1548934929 - NODATA"
+        }
+    ]
+}

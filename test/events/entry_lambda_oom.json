@@ -1,0 +1,21 @@
+{
+    "messageType": "DATA_MESSAGE",
+    "owner": "463657938898",
+    "logGroup": "/aws/lambda/sam-node-test-dev-triggered",
+    "logStream": "2019/01/31/[$LATEST]fe9b6a749a854acb95af7951c44a79e0",
+    "subscriptionFilters": [
+        "triggered"
+    ],
+    "logEvents": [
+        {
+            "id": "34542415717632252900687466827843614893660878434223194114",
+            "timestamp": 1548935491174,
+            "message": "REPORT RequestId: 2ea49a23-ff39-4bf5-8761-439f99b7c5f6\tDuration: 3003.28 ms\tBilled Duration: 3000 ms\tMemory Size: 128 MB\tMax Memory Used: 35 MB\t"
+        },
+        {
+            "id": "34542415717632252900687466827843614893660878434220923840",
+            "timestamp": 1548935491175,
+            "message": "RequestId: 2ea49a23-ff39-4bf5-8761-439f99b7c5f6 Error: Runtime exited with error: signal: killed\nRuntime.ExitError\n"
+        }
+    ]
+}
