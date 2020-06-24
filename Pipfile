@@ -17,6 +17,7 @@ python_version = "3.7"
 
 [packages]
 aiohttp = "*"
+boto3 = "*"
 
 [pipenv]
 allow_prereleases = true
