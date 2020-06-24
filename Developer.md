@@ -11,7 +11,7 @@
 # Publishing a new version
 
 To publish a new version [create a release](https://github.com/newrelic/aws-log-ingestion/releases/new)
-and specify a tag that matches the `SematicVersion` that appears in the `template.yml`
+and specify a tag that matches the `SemanticVersion` that appears in the `template.yml`
 but prefixed with a `v`. For example, if the `SemanticVersion` is `1.2.3` then your
 release tag should be `v1.2.3`.
 
