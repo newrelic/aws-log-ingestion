@@ -20,3 +20,6 @@ packaged.yaml
 node_modules
 package.json
 package-lock.json
+
+.python-version
+build/

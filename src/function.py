@@ -34,6 +34,7 @@ For more detailed documentation, check New Relic's documentation site:
 https://docs.newrelic.com/
 """
 
+import boto3
 import datetime
 import gzip
 import json
@@ -106,6 +107,9 @@ LAMBDA_REQUEST_ID_REGEX = re.compile(
 
 LOGGING_LAMBDA_VERSION = "1.0.2"
 LOGGING_PLUGIN_METADATA = {"type": "lambda", "version": LOGGING_LAMBDA_VERSION}
+
+# Once the license key has been fetched, save it to avoid fetching again
+cached_license_key = None
 
 
 class MaxRetriesException(Exception):
@@ -258,11 +262,27 @@ def _generate_payloads(data, split_function):
 
 def _get_license_key(license_key=None):
     """
-    This functions gets New Relic's license key from env vars.
+    This functions gets New Relic's license key from env vars or AWS secrets manager.
     """
+    global cached_license_key
     if license_key:
         return license_key
-    return os.getenv("LICENSE_KEY", "")
+
+    if cached_license_key:
+        return cached_license_key
+
+    # If a secrets manager ARN was specified, use it to grab the license key, otherwise
+    # obtain it from the LICENSE_KEY environment variable.
+    secret_arn = os.getenv("SECRET_KEY_ARN", "")
+    if secret_arn:
+        secrets_client = boto3.client('secretsmanager')
+        secret = secrets_client.get_secret_value(SecretId=secret_arn)
+        cached_license_key = secret.get('SecretString')
+        print("(got license key from secrets manager, len={})".format(len(cached_license_key)))
+    else:
+        cached_license_key = os.getenv("LICENSE_KEY", "")
+
+    return cached_license_key
 
 
 def _debug_logging_enabled():

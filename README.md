@@ -8,7 +8,7 @@ To forward data to New Relic: [New Relic License Key](https://docs.newrelic.com/
 
 ## Configuration
 
-You can configure forwarding of logs to New Relic Infrastructure and/or New Relic Logging using the following two environment variables.
+You can configure forwarding of logs to New Relic Infrastructure and/or New Relic Logging using the following environment variables.
 
 | Env. Variable | Behavior | Value |
 |---------------|----------|----------------------------|
@@ -24,6 +24,7 @@ You can configure forwarding of logs to New Relic Infrastructure and/or New Reli
 |---------------|------------|---------------------------|
 | NR_LOGGING_ENDPOINT |  New Relic ingestion endpoint for Logging | `https://log-api.newrelic.com/log/v1` |
 | NR_INFRA_ENDPOINT |  New Relic ingestion endpoint for Infra | `https://cloud-collector.newrelic.com` |
+| SECRET_KEY_ARN |  Use the specified ARN to obtain the license key from AWS secrets manager, rather than LICENSE_KEY variable | (empty) |
 
 
 ## Configure a Lambda trigger for logging
