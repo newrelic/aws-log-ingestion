@@ -34,6 +34,11 @@ Parameters:
       IAM Role name that this function will assume. Should provide the AWSLambdaBasicExecutionRole policy. If not
       specified, an appropriate Role will be created, which will require CAPABILITY_IAM to be acknowledged.
     Default: ''
+  LogIngestionFunctionArnExportName:
+    Type: String
+    Description: |
+      The export name suffix for the function ARN
+    Default: LogIngestionFunctionArn
 
 Conditions:
   NoRole: !Equals ['', !Ref FunctionRole]
@@ -48,7 +53,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.3.3
+    SemanticVersion: 2.3.4
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -109,3 +114,16 @@ Resources:
       Principal: !Sub logs.${AWS::Region}.amazonaws.com
       SourceArn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
 
+Outputs:
+  LogIngestionFunctionArn:
+    Condition: NoRole
+    Description: Log ingestion lambda function ARN
+    Value: !GetAtt NewRelicLogIngestionFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-${LogIngestionFunctionArnExportName}"
+  LogIngestionFunctionNoCapArn:
+    Condition: NoCap
+    Description: Log ingestion lambda function ARN (custom role)
+    Value: !GetAtt NewRelicLogIngestionFunctionNoCap.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-${LogIngestionFunctionArnExportName}"
