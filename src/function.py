@@ -275,11 +275,15 @@ def _get_license_key(license_key=None):
     # obtain it from the LICENSE_KEY environment variable.
     secret_arn = os.getenv("SECRET_KEY_ARN", "")
     if secret_arn:
-        secrets_client = boto3.client('secretsmanager')
+        secrets_client = boto3.client("secretsmanager")
         secret = secrets_client.get_secret_value(SecretId=secret_arn)
-        cached_license_key = secret.get('SecretString')
+        cached_license_key = secret.get("SecretString")
         if _debug_logging_enabled():
-            print("(got license key from secrets manager, len={})".format(len(cached_license_key)))
+            print(
+                "(got license key from secrets manager, len={})".format(
+                    len(cached_license_key)
+                )
+            )
     else:
         cached_license_key = os.getenv("LICENSE_KEY", "")
 
