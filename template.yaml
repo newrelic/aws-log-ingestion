@@ -39,6 +39,9 @@ Parameters:
     Description: |
       The export name suffix for the function ARN
     Default: LogIngestionFunctionArn
+  PermissionsBoundary:
+    Type: String
+    Description: IAM Role PermissionsBoundary (optional)
 
 Conditions:
   NoRole: !Equals ['', !Ref FunctionRole]
@@ -69,6 +72,7 @@ Resources:
       MemorySize:
         Ref: MemorySize
       Runtime: python3.7
+      PermissionsBoundary: !Ref PermissionsBoundary
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${FunctionRole}
       Timeout:
         Ref: Timeout
@@ -89,6 +93,7 @@ Resources:
       MemorySize:
         Ref: MemorySize
       Runtime: python3.7
+      PermissionsBoundary: !Ref PermissionsBoundary
       Timeout:
         Ref: Timeout
       Environment:
