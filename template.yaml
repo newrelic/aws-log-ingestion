@@ -42,6 +42,7 @@ Parameters:
   PermissionsBoundary:
     Type: String
     Description: IAM Role PermissionsBoundary (optional)
+    Default: ''
 
 Conditions:
   NoRole: !Equals ['', !Ref FunctionRole]
