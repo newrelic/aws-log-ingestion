@@ -265,6 +265,23 @@ def _get_license_key(license_key=None):
     return os.getenv("LICENSE_KEY", "")
 
 
+def _get_newrelic_tags(payload):
+    """
+    This functions gets New Relic's tags from env vars and adds it to the payload
+    A tag is a key value pair. Multiple tags can be specified.
+    Key and value are colon delimited. Multiple key value pairs are semi-colon delimited.
+    e.g. env:prod;team:myTeam
+    """
+    nr_tags_str = os.getenv("NR_TAGS", "")
+    if nr_tags_str:
+        nr_tags = dict(
+            item.split(":")
+            for item in nr_tags_str.split(";")
+            if not item.startswith(tuple(["aws:", "plugin:"]))
+        )
+        payload[0]["common"]["attributes"].update(nr_tags)
+
+
 def _debug_logging_enabled():
     """
     Determines whether or not debug logging should be enabled based on the env var.
@@ -336,7 +353,7 @@ def _get_entry_type(log_entry):
 
 def _get_infra_endpoint():
     """
-    Service url is determined by the lincese key's region.
+    Service url is determined by the license key's region.
     Any other URL could be passed by using the NR_INFRA_ENDPOINT env var.
     """
     if "NR_INFRA_ENDPOINT" in os.environ:
@@ -452,6 +469,8 @@ def _package_log_payload(data):
             "logs": log_messages,
         }
     ]
+
+    _get_newrelic_tags(packaged_payload)
 
     return packaged_payload
 
