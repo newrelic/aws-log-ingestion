@@ -452,9 +452,7 @@ def _package_log_payload(data):
                 log_message["attributes"]["aws"][
                     "lambda_request_id"
                 ] = lambda_request_id
-                log_message["attributes"]["aws"][
-                    "requestId"
-                ] = lambda_request_id
+                log_message["attributes"]["aws"]["requestId"] = lambda_request_id
 
         log_messages.append(log_message)
 
