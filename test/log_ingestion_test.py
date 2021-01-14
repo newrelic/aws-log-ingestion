@@ -507,8 +507,8 @@ def test_lambda_request_ids_are_extracted(mock_aio_post):
     assert messages[3]["attributes"]["aws"]["lambda_request_id"] == expected_request_id
     assert messages[3]["attributes"]["aws"]["requestId"] == expected_request_id
     assert messages[4]["timestamp"] == timestamp
-    assert messages[4]["attributes"]["aws"]["lambda_request_id"] == expected_request_id
-    assert messages[4]["attributes"]["aws"]["requestId"] == expected_request_id
+    assert messages[4]["attributes"]["aws"]["lambda_request_id"] == expected_request_id2
+    assert messages[4]["attributes"]["aws"]["requestId"] == expected_request_id2
 
 
 async def aio_post_response():
