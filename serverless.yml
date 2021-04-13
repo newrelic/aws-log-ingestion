@@ -16,6 +16,8 @@ provider:
     LICENSE_KEY: ${env:LICENSE_KEY}
     # Determines if logs are forwarded to New Relic Logging
     LOGGING_ENABLED: ${env:LOGGING_ENABLED, "False"}
+    # A boolean to determine if you want to output debug messages in the CloudWatch console
+    DEBUG_LOGGING_ENABLED: ${env:DEBUG_LOGGING_ENABLED, "False"}
 
 custom:
   pythonRequirements:
@@ -32,7 +34,7 @@ package:
 
 functions:
   newrelic-log-ingestion:
-    description: Send log data from CloudWatch Logs and S3 to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
+    description: Send log data from CloudWatch Logs to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
     handler: src/function.lambda_handler
     name: newrelic-log-ingestion
 

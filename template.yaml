@@ -43,6 +43,10 @@ Parameters:
     Type: String
     Description: IAM Role PermissionsBoundary (optional)
     Default: ''
+  DebugLoggingEnabled:
+    Type: String
+    Description: A boolean to determine if you want to output debug messages in the CloudWatch console
+    Default: "false"
 
 Conditions:
   NoRole: !Equals ['', !Ref FunctionRole]
@@ -83,6 +87,7 @@ Resources:
           LICENSE_KEY: !Ref NRLicenseKey
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
+          DEBUG_LOGGING_ENABLED: !Ref DebugLoggingEnabled
   NewRelicLogIngestionFunction:
     Type: AWS::Serverless::Function
     Condition: NoRole
@@ -103,6 +108,7 @@ Resources:
           LICENSE_KEY: !Ref NRLicenseKey
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
+          DEBUG_LOGGING_ENABLED: !Ref DebugLoggingEnabled
   LambdaInvokePermissionNoCap:
     Type: AWS::Lambda::Permission
     Condition: NoCap
