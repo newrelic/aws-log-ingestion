@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
 Parameters:
+  FunctionNameSuffix:
+    Type: String
+    Description: Suffix for the New Relic Log Ingestion Lambda function name
+    Default: ''
   NRLicenseKey:
     Type: String
     Description: Your NewRelic license key.
@@ -74,7 +78,10 @@ Resources:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Join
+        - ""
+        - - newrelic-log-ingestion
+          - !Ref FunctionNameSuffix
       MemorySize:
         Ref: MemorySize
       Runtime: python3.7
@@ -96,7 +103,10 @@ Resources:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Join
+        - ""
+        - - newrelic-log-ingestion
+          - !Ref FunctionNameSuffix
       MemorySize:
         Ref: MemorySize
       Runtime: python3.7
