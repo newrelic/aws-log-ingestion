@@ -17,6 +17,13 @@ Parameters:
     AllowedValues:
       - 'True'
       - 'False'
+  NRTags:
+    Type: String
+    Description: |
+      New Relic Logs tags to apply to each log line sent. A tag is a key value pair. Multiple tags can be specified.
+      Key and value are colon delimited. Multiple key value pairs are semi-colon delimited.
+      e.g. env:prod;team:myTeam
+    Default: ''
   NRInfraLogging:
     Type: String
     Description: Determines if logs are forwarded to New Relic Infrastructure
@@ -95,6 +102,7 @@ Resources:
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
           DEBUG_LOGGING_ENABLED: !Ref DebugLoggingEnabled
+          NR_TAGS: !Ref NRTags
   NewRelicLogIngestionFunction:
     Type: AWS::Serverless::Function
     Condition: NoRole
@@ -119,6 +127,7 @@ Resources:
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
           DEBUG_LOGGING_ENABLED: !Ref DebugLoggingEnabled
+          NR_TAGS: !Ref NRTags
   LambdaInvokePermissionNoCap:
     Type: AWS::Lambda::Permission
     Condition: NoCap
