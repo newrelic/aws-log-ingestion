@@ -12,6 +12,9 @@ To forward data to New Relic you need a [New Relic License Key](https://docs.new
 
 To install and configure the New Relic Cloudwatch Logs Lambda, [see our documentation](https://docs.newrelic.com/docs/logs/enable-logs/enable-logs/aws-cloudwatch-plugin-logs).
 
+Additional notes:
+* Some users in UTF-8 environments have reported difficulty with defining strings of `NR_TAGS` delimited by the semicolon `;` character. If this applies to you, you can set an alternative delimiter character as the value of `NR_ENV_DELIMITER`, and separate your `NR_TAGS` with that. 
+
 ## Manual Deployment
 
 If your organization restricts access to deploy via SAR, follow these steps below
