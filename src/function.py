@@ -21,7 +21,7 @@ It expects to be invoked based on CloudWatch Logs streams.
 New Relic's license key must be encrypted using KMS following these
 instructions:
 
-1. After creating te Lambda based on the Blueprint, select it and open the
+1. After creating the Lambda based on the Blueprint, select it and open the
 Environment Variables section.
 
 2. Check that the "LICENSE_KEY" environment variable if properly filled-in.
@@ -323,10 +323,11 @@ def _get_newrelic_tags(payload):
     e.g. env:prod;team:myTeam
     """
     nr_tags_str = os.getenv("NR_TAGS", "")
+    nr_delimiter = os.getenv("NR_ENV_DELIMITER", ";")
     if nr_tags_str:
         nr_tags = dict(
             item.split(":")
-            for item in nr_tags_str.split(";")
+            for item in nr_tags_str.split(nr_delimiter)
             if not item.startswith(tuple(["aws:", "plugin:"]))
         )
         payload[0]["common"]["attributes"].update(nr_tags)
