@@ -221,7 +221,7 @@ async def _send_log_entry(log_entry, context):
     session_timeout = _calculate_session_timeout()
 
     async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(total=session_timeout)
+        timeout=aiohttp.ClientTimeout(total=session_timeout), trust_env=True
     ) as session:
         # Both Infrastructure and Logging require a "LICENSE_KEY" environment variable.
         # In order to send data to the Infrastructure Pipeline, the customer doesn't need
