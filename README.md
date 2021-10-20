@@ -45,3 +45,16 @@ Additional notes:
 Additional notes:
 
 * To set `LOGGING_ENABLED`: `export LOGGING_ENABLED=True` (prior to deploy)
+
+### Terraform
+
+In your Terraform, you can add this as a module, replacing `{{YOUR_LICENSE_KEY}}` with your New Relic License Key.
+
+```terraform
+module "newrelic_log_ingestion" {
+  source             = "github.com/newrelic/aws-log-ingestion"
+  nr_license_key     = "{{YOUR_LICENSE_KEY}}"
+}
+```
+
+By default, this will build and pack the lambda zip inside of the Terraform Module. You can supply your own by switching `build_lambda = false`, and specify the path to your lambda, using `lambda_archive = "{{LAMBDA_PATH}}"`, replacing `{{LAMBDA_PATH}}` with the path to your lambda.
