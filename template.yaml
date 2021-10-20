@@ -62,7 +62,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.5.0
+    SemanticVersion: 2.6.0
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -83,7 +83,7 @@ Resources:
       Timeout:
         Ref: Timeout
       Environment:
-        Variables: 
+        Variables:
           LICENSE_KEY: !Ref NRLicenseKey
           LOGGING_ENABLED: !Ref NRLoggingEnabled
           INFRA_ENABLED: !Ref NRInfraLogging
@@ -113,7 +113,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Condition: NoCap
     Properties:
-      FunctionName: !GetAtt NewRelicLogIngestionFunctionNoCap.Arn 
+      FunctionName: !GetAtt NewRelicLogIngestionFunctionNoCap.Arn
       Action: lambda:InvokeFunction
       Principal: !Sub logs.${AWS::Region}.amazonaws.com
       SourceArn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
@@ -122,7 +122,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Condition: NoRole
     Properties:
-      FunctionName: !GetAtt NewRelicLogIngestionFunction.Arn 
+      FunctionName: !GetAtt NewRelicLogIngestionFunction.Arn
       Action: lambda:InvokeFunction
       Principal: !Sub logs.${AWS::Region}.amazonaws.com
       SourceArn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
