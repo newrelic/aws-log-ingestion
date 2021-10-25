@@ -3,73 +3,60 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.7
-    environment:
-      PIPENV_VENV_IN_PROJECT: true
     steps:
       - checkout
-      - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
       - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          keys:
+            - deps-{{ checksum "poetry.lock" }}
       - run:
-          command: |
-            sudo pip install pipenv
-            pipenv install --dev --deploy
+          name: Install Dependencies
+          command: poetry install
       - save_cache:
-          key: deps-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          key: deps-{{ checksum "poetry.lock" }}
           paths:
-            - ".venv"
-            - "/usr/local/bin"
-            - "/usr/local/lib/python3.7/site-packages"
+            - /home/circleci/.cache/pypoetry/virtualenvs
 
   lint:
     docker:
       - image: circleci/python:3.7
-    environment:
-      PIPENV_VENV_IN_PROJECT: true
     steps:
       - checkout
-      - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
       - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          keys:
+            - deps-{{ checksum "poetry.lock" }}
       - run:
           command: |
-            pipenv run flake8 src test
-            pipenv run black --check src test
+            poetry run flake8 src test
+            poetry run black --check src test
 
   test:
     docker:
       - image: circleci/python:3.7
-    environment:
-      PIPENV_VENV_IN_PROJECT: true
     steps:
       - checkout
-      - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
       - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          keys:
+            - deps-{{ checksum "poetry.lock" }}
       - run:
-          command: pipenv run pytest
+          name: Run Tests
+          command: poetry run pytest
 
   release:
     docker:
       - image: circleci/python:3.7
-    environment:
-      PIPENV_VENV_IN_PROJECT: true
     steps:
       - checkout
-      - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
+      - restore_cache:
+          keys:
+            - deps-{{ checksum "poetry.lock" }}
       - run:
-          name: Install release dependencies
+          name: Publish to SAR
           command: |
-            sudo pip install -q -U aws-sam-cli
-            pipenv lock --requirements --keep-outdated > ./src/requirements.txt
-            sam validate
-            sam build
-            sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
-            sam publish --region us-east-1 --template packaged.yaml
+            poetry export -o src/requirements.txt --without-hashes
+            poetry run sam validate
+            poetry run sam build
+            poetry run sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
+            poetry sam publish --region us-east-1 --template packaged.yaml
 
 workflows:
   version: 2
