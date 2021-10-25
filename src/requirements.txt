@@ -1,9 +1,8 @@
--i https://pypi.org/simple
-aiohttp==4.0.0a1
-async-timeout==3.0.1
-attrs==19.3.0
-chardet==3.0.4
-idna==2.9
-multidict==4.7.5
-typing-extensions==3.7.4.1
-yarl==1.4.2
+aiohttp==3.7.4.post0; python_version >= "3.6"
+async-timeout==3.0.1; python_full_version >= "3.5.3" and python_version >= "3.6"
+attrs==21.2.0; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6"
+chardet==4.0.0; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6"
+idna==2.10; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6"
+multidict==5.2.0; python_version >= "3.6"
+typing-extensions==3.10.0.2; python_version < "3.8" and python_version >= "3.6"
+yarl==1.7.0; python_version >= "3.6"
