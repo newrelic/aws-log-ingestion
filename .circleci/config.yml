@@ -56,7 +56,7 @@ jobs:
             poetry run sam validate
             poetry run sam build
             poetry run sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
-            poetry sam publish --region us-east-1 --template packaged.yaml
+            poetry run sam publish --region us-east-1 --template packaged.yaml
 
 workflows:
   version: 2
