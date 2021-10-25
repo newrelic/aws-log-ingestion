@@ -736,11 +736,18 @@ description = "A Python library with convenience helpers for working with the AW
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+develop = false
 
 [package.dependencies]
 boto3 = ">=1.9.56,<2.0"
 pyyaml = ">=5.1,<6.0"
 six = ">=1.11,<2.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/kolanos/aws-serverlessrepo-python.git"
+reference = "master"
+resolved_reference = "bb1f9c8747b38698535b7d7d92960cdeee9a9870"
 
 [[package]]
 name = "six"
@@ -899,7 +906,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "47bbcf56d73f67b120f516718a832b0253f2108e89a61c8f9f7576dbc349c943"
+content-hash = "a1bfb06ec6990163841670e3a51d6683200fe4c5d2d7bbe4aaafc531c74b146c"
 
 [metadata.files]
 aiohttp = [
@@ -1449,10 +1456,7 @@ s3transfer = [
     {file = "s3transfer-0.5.0-py3-none-any.whl", hash = "sha256:9c1dc369814391a6bda20ebbf4b70a0f34630592c9aa520856bf384916af2803"},
     {file = "s3transfer-0.5.0.tar.gz", hash = "sha256:50ed823e1dc5868ad40c8dc92072f757aa0e653a192845c94a3b676f4a62da4c"},
 ]
-serverlessrepo = [
-    {file = "serverlessrepo-0.1.10-py2.py3-none-any.whl", hash = "sha256:b99c69be8ce87ccc48103fbe371ba7b148c3374c57862e59118c402522e5ed52"},
-    {file = "serverlessrepo-0.1.10.tar.gz", hash = "sha256:671f48038123f121437b717ed51f253a55775590f00fbab6fbc6a01f8d05c017"},
-]
+serverlessrepo = []
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
