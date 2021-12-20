@@ -14,6 +14,7 @@ To install and configure the New Relic Cloudwatch Logs Lambda, [see our document
 
 Additional notes:
 * Some users in UTF-8 environments have reported difficulty with defining strings of `NR_TAGS` delimited by the semicolon `;` character. If this applies to you, you can set an alternative delimiter character as the value of `NR_ENV_DELIMITER`, and separate your `NR_TAGS` with that. 
+* Custom Lambda and VPC log groups can be set using the `NR_LAMBDA_LOG_GROUP_PREFIX` and `NR_VPC_LOG_GROUP_PREFIX` environment variables.
 
 ## Manual Deployment
 
