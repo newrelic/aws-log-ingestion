@@ -26,6 +26,12 @@ variable "nr_infra_logging" {
   default     = true
 }
 
+variable "nr_tags" {
+  type        = string
+  description = "Additional tags added to the logs"
+  sensitive   = false
+}
+
 variable "lambda_archive" {
   type        = string
   description = "The path to the lambda archive, the lambda will be build here if the build_lambda variable is true."
@@ -187,6 +193,7 @@ resource "aws_lambda_function" "ingestion_function" {
       LICENSE_KEY     = var.nr_license_key
       LOGGING_ENABLED = var.nr_logging_enabled ? "True" : "False"
       INFRA_ENABLED   = var.nr_infra_logging ? "True" : "False"
+      NR_TAGS         = var.nr_tags
     }
   }
 
