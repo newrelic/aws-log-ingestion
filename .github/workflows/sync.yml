@@ -16,6 +16,6 @@ jobs:
       - name: Merge Upstream
         uses: exions/merge-upstream@v1
         with:
-          upstream: newrelic/aws_log_ingestion
+          upstream: newrelic/aws-log-ingestion
           upstream-branch: master
           branch: master
