@@ -218,6 +218,11 @@ async def _send_log_entry(log_entry, context):
         "log_stream_name": context.log_stream_name,
     }
 
+    service_name = ""
+    if context.log_stream_name.startswith("Framer"):
+        service_name = context.log_stream_name.split("/")[0]
+        context["service_name"] = service_name
+
     session_timeout = _calculate_session_timeout()
 
     async with aiohttp.ClientSession(
