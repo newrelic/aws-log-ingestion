@@ -211,6 +211,8 @@ async def _send_log_entry(log_entry, context):
     """
     entry_type = _get_entry_type(log_entry)
 
+    log_stream_name = context.log_stream_name
+
     context = {
         "function_name": context.function_name,
         "invoked_function_arn": context.invoked_function_arn,
@@ -219,9 +221,8 @@ async def _send_log_entry(log_entry, context):
     }
 
     # Framer Specific
-    service_name = ""
-    if context.log_stream_name.startswith("Framer"):
-        service_name = context.log_stream_name.split("/")[0]
+    if log_stream_name.startswith("Framer"):
+        service_name = log_stream_name.split("/")[0]
         tags = _parse_newrelic_tags()
         if "account" in tags:
             service_name = tags["account"].capitalize() + " - " + service_name
