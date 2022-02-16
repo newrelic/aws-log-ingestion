@@ -218,6 +218,16 @@ async def _send_log_entry(log_entry, context):
         "log_stream_name": context.log_stream_name,
     }
 
+    # Framer Specific
+    service_name = ""
+    if context.log_stream_name.startswith("Framer"):
+        service_name = context.log_stream_name.split("/")[0]
+        tags = _parse_newrelic_tags()
+        if "account" in tags:
+            service_name = tags["account"].capitalize() + " - " + service_name
+        context["service_name"] = service_name
+    # End Framer Specific
+
     session_timeout = _calculate_session_timeout()
 
     async with aiohttp.ClientSession(
@@ -315,13 +325,7 @@ def _get_license_key(license_key=None):
     return os.getenv("LICENSE_KEY", "")
 
 
-def _get_newrelic_tags(payload):
-    """
-    This functions gets New Relic's tags from env vars and adds it to the payload
-    A tag is a key value pair. Multiple tags can be specified.
-    Key and value are colon delimited. Multiple key value pairs are semi-colon delimited.
-    e.g. env:prod;team:myTeam
-    """
+def _parse_newrelic_tags():
     nr_tags_str = os.getenv("NR_TAGS", "")
     nr_delimiter = os.getenv("NR_ENV_DELIMITER", ";")
     if nr_tags_str:
@@ -330,7 +334,19 @@ def _get_newrelic_tags(payload):
             for item in nr_tags_str.split(nr_delimiter)
             if not item.startswith(tuple(["aws:", "plugin:"]))
         )
-        payload[0]["common"]["attributes"].update(nr_tags)
+        return nr_tags
+
+
+def _get_newrelic_tags(payload):
+    """
+    This functions gets New Relic's tags from env vars and adds it to the payload
+    A tag is a key value pair. Multiple tags can be specified.
+    Key and value are colon delimited. Multiple key value pairs are semi-colon delimited.
+    e.g. env:prod;team:myTeam
+    """
+    tags = _parse_newrelic_tags()
+    if tags is None:
+        payload[0]["common"]["attributes"].update(tags)
 
 
 def _debug_logging_enabled():
