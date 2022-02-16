@@ -1,12 +1,12 @@
 # Setup Python Environment
 
-- Install `pipenv` using brew: `brew install pipenv`
-- Create virtualenv and install dependencies with `pipenv install --dev --deploy`
+- Install poetry: `curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -`
+- Install dependencies: `poetry install`
 
 # Running tests and linter locally
 
-- Run tests with `pipenv run pytest`
-- Ensure the code is PEP-8 compliant by using the flake8 linter: `pipenv run flake8`
+- Run tests with `poetry run pytest`
+- Ensure the code is PEP-8 compliant by using the flake8 linter: `poetry run flake8`
 
 # Publishing a new version
 
