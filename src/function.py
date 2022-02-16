@@ -345,7 +345,7 @@ def _get_newrelic_tags(payload):
     e.g. env:prod;team:myTeam
     """
     tags = _parse_newrelic_tags()
-    if tags is None:
+    if tags is not None:
         payload[0]["common"]["attributes"].update(tags)
 
 
