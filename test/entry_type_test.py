@@ -84,6 +84,23 @@ def test_rds_url():
     assert "https://cloud-collector.newrelic.com/aws/v1" == url
 
 
+def test_lambda_request_id():
+    # given
+    fixture = _getReqIdEntry()
+    context = json.dumps(fixture["logEvents"][0]["context"])
+
+    data = {"context": context, "entry": json.dumps(fixture)}
+
+    for payload in function._package_log_payload(data):
+        testPayload = payload
+
+    #when
+    requestId = testPayload["logs"][0]["attributes"]["aws"]["lambda_request_id"]
+    contextId = testPayload["logs"][0]["attributes"]["context"]["id"]
+    # then these should be different
+    assert requestId != contextId
+
+
 def _getVpcFlowLogsEntry():
     return _loadJson("./test/events/entry_vpc_flow_logs.json")
 
@@ -94,6 +111,10 @@ def _getLambdaEntry():
 
 def _getRdsEntry():
     return _loadJson("./test/events/entry_rds.json")
+
+
+def _getReqIdEntry():
+    return _loadJson("./test/events/lambda_request_id.json")
 
 
 def _loadJson(filename):

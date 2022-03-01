@@ -1,0 +1,36 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "11111111",
+  "logGroup": "/aws/lambda/LogStructureFunction",
+  "logStream": "2022/03/01/[$LATEST]c7a773678b17b441ce509dc5a7cdf048",
+  "subscriptionFilters": [
+    "NewRelicLogStreaming"
+  ],
+  "logEvents": [
+    {
+      "message": "Trace message for testing",
+      "timestamp": "2022-02-28T16:45:16.011Z",
+      "context": {
+        "id": "00000000-3330-4edc-b50c-1c0d8c79a34c",
+        "timestamp": "2022-02-28T16:45:16.011Z",
+        "level": "Trace",
+        "aws": {
+          "requestId": "ffffffff-ab34-4637-94d3-85b7cd5f6184",
+          "traceId": "REDACTED",
+          "apiGatewayRequestId": "REDACTED",
+          "resource": {
+            "name": "Placeholder",
+            "version": "4.0.1",
+            "stack": "API-PlaceHolder"
+          }
+        },
+        "source": {
+          "ip": "REDACTED"
+        }
+      },
+      "aws": {
+        "lambda_request_id": "ffffffff-ab34-4637-94d3-85b7cd5f6184"
+      }
+    }
+  ]
+}
