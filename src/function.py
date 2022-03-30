@@ -83,7 +83,7 @@ INDIVIDUAL_REQUEST_TIMEOUT = aiohttp.ClientTimeout(
 # Reserves a time buffer for logs to be formatted before being sent.
 SESSION_MAX_PROCESSING_TIME = 1
 
-LAMBDA_LOG_GROUP_PREFIX = os.getenv("LAMBDA_LOG_GROUP_PREFIX")#"/aws/lambda"
+LAMBDA_LOG_GROUP_PREFIX = os.getenv("LAMBDA_LOG_GROUP_PREFIX", "/aws/lambda")
 VPC_LOG_GROUP_PREFIX = os.getenv("NR_VPC_LOG_GROUP_PREFIX", "/aws/vpc/flow-logs")
 
 LAMBDA_NR_MONITORING_PATTERN = re.compile(r'.*"NR_LAMBDA_MONITORING')
