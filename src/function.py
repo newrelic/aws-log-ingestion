@@ -498,7 +498,7 @@ def _package_log_payload(data):
 
     for log_event in log_events:
         log_message = {
-            "message": log_event["detail-type"],
+            "message": log_event["message"],
             "timestamp": log_event["timestamp"],
             "attributes": {"aws": {}},
         }
