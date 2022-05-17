@@ -14,6 +14,7 @@ __pycache__/
 
 packaged.yaml
 .aws-sam/
+samconfig.toml
 /src/requirements.txt
 
 .serverless
