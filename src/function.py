@@ -33,7 +33,6 @@ functioning properly you can check the Monitoring tab and CloudWatch Logs.
 For more detailed documentation, check New Relic's documentation site:
 https://docs.newrelic.com/
 """
-
 import datetime
 import gzip
 import json
@@ -495,12 +494,17 @@ def _package_log_payload(data):
     log_events = entry["logEvents"]
     log_messages = []
     lambda_request_id = None
+    trace_id = ''
 
     for log_event in log_events:
+        if LAMBDA_NR_MONITORING_PATTERN.match(log_event["message"]):
+            trace_id = _get_trace_id(log_event["message"])
+
         log_message = {
             "message": log_event["message"],
             "timestamp": log_event["timestamp"],
             "attributes": {"aws": {}},
+            "traceId": trace_id
         }
 
         for event_key in log_event:
@@ -555,6 +559,40 @@ def _split_log_payload(payload):
 
 def _reconstruct_log_payload(common, logs):
     return [{"common": common, "logs": logs}]
+
+
+def _get_trace_id(message):
+    """
+    message: str
+        message = "[
+            1,
+            \"NR_LAMBDA_MONITORING\",
+            \"base64.b64encode(gzip.compress(message)).decode("utf-8")\",
+        ]"
+    """
+
+    def extract_trace_id(key):
+        try:
+            trace_id = json_message[key][2][0]['traceId']
+            return trace_id
+        except Exception:
+            logger.debug(f'No trace ID found in {key}')
+            return ''
+
+    trace_id = ''
+    try:
+        message = json.loads(message)
+        data = b64decode(message[2])
+        message_str = gzip.decompress(data).decode("utf-8")
+        json_message = json.loads(message_str)
+        trace_id = extract_trace_id('analytic_event_data')
+        if trace_id:
+            return trace_id
+        else:
+            return extract_trace_id('span_event_data')
+    except Exception:
+        logger.debug('Failed to decode payload')
+        return trace_id
 
 
 ####################
