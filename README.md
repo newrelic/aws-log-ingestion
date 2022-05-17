@@ -87,7 +87,7 @@ The payload should include the following elements (properly escaped):
 {
   "context": {
     "function_name": "newrelic-log-ingestion",
-    "invoked_function_arn": "arn:aws:lambda:<your_aws_region>:<your_aws_account>:function:<your_function_name>",
+    "invoked_function_arn": "arn:aws:lambda:<your_aws_region>:<your_aws_account>:function:newrelic-log-ingestion",
     "log_group_name": "/aws/lambda/newrelic-log-ingestion",
     "log_stream_name": "2022/05/17/[$LATEST]30dce751bc1a4e7497eb644171d70153"
   },
