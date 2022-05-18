@@ -180,8 +180,7 @@ def _filter_log_lines(log_entry):
     """
     final_log_events = []
     for event in log_entry["logEvents"]:
-        messaging = event["message"]
-        message = print(messaging['detail-type'])
+        message = event["message"]
         if REPORT_PATTERN.match(message) or _is_lambda_message(message):
             final_log_events.append(event)
 
