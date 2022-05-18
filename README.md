@@ -95,7 +95,7 @@ The payload should include the following elements (properly escaped):
 }
 ```
 
-*Notes:*
-
-*- Replace <your_xyz> elements with your content.*
-*- Example `log_stream_name` like `2022/05/17/[$LATEST]30dce751bc1a4e7497eb644171d70153`*
+> Notes:
+>
+> * Replace <your_xyz> elements with your content.
+> * Example `log_stream_name` like `2022/05/17/[$LATEST]30dce751bc1a4e7497eb644171d70153`*
