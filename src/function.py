@@ -561,9 +561,9 @@ def _reconstruct_log_payload(common, logs):
     return [{"common": common, "logs": logs}]
 
 
-def _get_trace_id(message):
+def _get_trace_id(message_str):
     """
-    message: str
+    message_str: str
         message = "[
             1,
             \"NR_LAMBDA_MONITORING\",
@@ -573,18 +573,17 @@ def _get_trace_id(message):
 
     def extract_trace_id(key):
         try:
-            trace_id = json_message[key][2][0]['traceId']
-            return trace_id
+            return data[key][2][0][0]['traceId']
         except Exception:
             logger.debug(f'No trace ID found in {key}')
             return ''
 
     trace_id = ''
     try:
-        message = json.loads(message)
-        data = b64decode(message[2])
-        message_str = gzip.decompress(data).decode("utf-8")
-        json_message = json.loads(message_str)
+        message = json.loads(message_str)
+        data_str = gzip.decompress(b64decode(message[2])).decode("utf-8")
+        data = json.loads(data_str)['data']
+
         trace_id = extract_trace_id('analytic_event_data')
         if trace_id:
             return trace_id
