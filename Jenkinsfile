@@ -1,1 +1,1 @@
-GlobalGitFlowPipelineV2Admcsa()
+GlobalGitFlowPipelineADMI()
