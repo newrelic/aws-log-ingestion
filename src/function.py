@@ -504,8 +504,10 @@ def _package_log_payload(data):
             "message": log_event["message"],
             "timestamp": log_event["timestamp"],
             "attributes": {"aws": {}},
-            "traceId": trace_id
         }
+
+        if trace_id:
+            log_message['traceId'] = trace_id
 
         for event_key in log_event:
             if event_key not in ("id", "message", "timestamp"):
