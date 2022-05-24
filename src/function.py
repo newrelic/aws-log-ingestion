@@ -495,13 +495,20 @@ def _package_log_payload(data):
     log_events = entry["logEvents"]
     log_messages = []
     lambda_request_id = None
+    trace_id = ''
 
     for log_event in log_events:
+        if LAMBDA_NR_MONITORING_PATTERN.match(log_event["message"]):
+            trace_id = _get_trace_id(log_event["message"])
+
         log_message = {
             "message": log_event["message"],
             "timestamp": log_event["timestamp"],
             "attributes": {"aws": {}},
         }
+
+        if trace_id:
+            log_message['traceId'] = trace_id
 
         for event_key in log_event:
             if event_key not in ("id", "message", "timestamp"):
@@ -555,6 +562,39 @@ def _split_log_payload(payload):
 
 def _reconstruct_log_payload(common, logs):
     return [{"common": common, "logs": logs}]
+
+
+def _get_trace_id(message_str):
+    """
+    message_str: str
+        message = "[
+            1,
+            \"NR_LAMBDA_MONITORING\",
+            \"base64.b64encode(gzip.compress(message)).decode("utf-8")\",
+        ]"
+    """
+
+    def extract_trace_id(key):
+        try:
+            return data[key][2][0][0]['traceId']
+        except Exception:
+            logger.debug(f'No trace ID found in {key}')
+            return ''
+
+    trace_id = ''
+    try:
+        message = json.loads(message_str)
+        data_str = gzip.decompress(b64decode(message[2])).decode("utf-8")
+        data = json.loads(data_str)['data']
+
+        trace_id = extract_trace_id('analytic_event_data')
+        if trace_id:
+            return trace_id
+        else:
+            return extract_trace_id('span_event_data')
+    except Exception:
+        logger.debug('Failed to decode payload')
+        return trace_id
 
 
 ####################
