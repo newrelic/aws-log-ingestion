@@ -2,7 +2,7 @@ service: newrelic-log-ingestion
 
 provider:
   name: aws
-  runtime: python3.7
+  runtime: python3.9
   stage: production
   timeout: 30
 
