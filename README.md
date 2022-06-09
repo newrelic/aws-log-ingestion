@@ -71,17 +71,24 @@ If your payload exceeds this size, you will need to split it into pieces:
 
 <https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L292-L306>
 
-The payload should be gzipped before sending:
+The payload should be utf-8 encoded and then gzipped before sending:
 
 <https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L298>
+
+The following GNU coreutils Bash command will reproduce the desired payload encoding and compression:
+
+```sh
+xclip -sel clip -o | iconv -cf utf-8 | gzip > payload.gz
+```
 
 Required headers include:
 
 * <https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L360-L361>
-* `Content-Length`
-* `Host`
+* `Accept-Encoding: gzip`
+* `Content-Length: <calculated when request is sent>`
+* `Host: <calculated when request is sent>`
 
-The payload should include the following elements (properly escaped):
+The payload should include the following (properly escaped) elements[^1]:
 
 ```json
 {
@@ -95,7 +102,4 @@ The payload should include the following elements (properly escaped):
 }
 ```
 
-*Notes:*
-
-*- Replace <your_xyz> elements with your content.*
-*- Example `log_stream_name` like `2022/05/17/[$LATEST]30dce751bc1a4e7497eb644171d70153`*
+[^1]: Replace <your_xyz> elements with your content, for example: `"log_stream_name": "2022/05/17/[$LATEST]30dce751bc1a4e7497eb644171d70153"`.

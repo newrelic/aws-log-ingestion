@@ -6,7 +6,7 @@ authors = ["New Relic <serverless@newrelic.com>"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 aiohttp = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
@@ -27,7 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py37']
+target-version = ['py39']
 include = '\.pyi?$'
 exclude = '''
 /(
