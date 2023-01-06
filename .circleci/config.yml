@@ -58,6 +58,7 @@ jobs:
             poetry run sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
             poetry run sam publish --region us-east-1 --template packaged.yaml
 
+
 workflows:
   version: 2
   build-all:
