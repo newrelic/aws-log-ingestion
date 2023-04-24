@@ -1,0 +1,58 @@
+name: New Relic - AWS Logs Ingestion - Merge to master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.4"]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+      - name: Install project
+        run: poetry install --no-interaction
+      - name: Test
+        run: poetry run pytest
+
+  release:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.4"]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+      - name: Install project
+        run: poetry install --no-interaction
+      - name: Test
+        run: poetry run pytest
+      - name: Build & Package & Publish
+        command: |
+          poetry export -o src/requirements.txt --without-hashes
+          poetry run sam validate
+          poetry run sam build
+          poetry run sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
+          poetry run sam publish --region us-east-1 --template packaged.yaml
+
+
