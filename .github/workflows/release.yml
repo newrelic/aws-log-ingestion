@@ -1,12 +1,11 @@
-name: New Relic - AWS Logs Ingestion - Merge to master
+name: New Relic - AWS Logs Ingestion - Release
 
 on:
-  push:
-    branches:
-      - master
+  release:
+    types: [released]
 
 jobs:
-  test:
+  release:
     strategy:
       matrix:
         python-version: ["3.9"]
@@ -24,3 +23,12 @@ jobs:
         run: poetry install --no-interaction
       - name: Test
         run: poetry run pytest
+      - name: Build & Package & Publish
+        command: |
+          poetry export -o src/requirements.txt --without-hashes
+          poetry run sam validate
+          poetry run sam build
+          poetry run sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
+          poetry run sam publish --region us-east-1 --template packaged.yaml
+
+
