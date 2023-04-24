@@ -10,8 +10,11 @@
 
 # Publishing a new version
 
-To publish a new version [create a release](https://github.com/newrelic/aws-log-ingestion/releases/new)
-and specify a tag that matches the `SemanticVersion` that appears in the `template.yml`
+The version number needs to be bumped in `pyproject.toml` and `template.yaml` (in `Metadata.SemanticVersion`).
+Note that both should match.
+
+Then, to publish a new version, [create a release](https://github.com/newrelic/aws-log-ingestion/releases/new)
+and specify a tag that matches the `SemanticVersion` that appears in `template.yml` (and `pyproject.toml`)
 but prefixed with a `v`. For example, if the `SemanticVersion` is `1.2.3` then your
 release tag should be `v1.2.3`.
 
