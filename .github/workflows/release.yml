@@ -23,6 +23,11 @@ jobs:
         run: poetry install --no-interaction
       - name: Test
         run: poetry run pytest
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_SAR_PUBLISHER_ROLE }}
+          aws-region: us-east-1
       - name: Build & Package & Publish
         command: |
           poetry export -o src/requirements.txt --without-hashes
