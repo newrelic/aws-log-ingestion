@@ -49,7 +49,7 @@ jobs:
         with:
           payload: |
             {
-              "releaseNotes": "${{ github.event.release.body }}",
+              "releaseUrl": "${{ github.event.release.html_url }}",
               "releaseName": "${{ github.event.release.name }}"
             }
         env:
