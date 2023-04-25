@@ -28,6 +28,9 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_SAR_PUBLISHER_ROLE }}
           aws-region: us-east-1
+          permissions:
+            id-token: write
+            contents: read
       - name: Build & Package & Publish
         run: |
           poetry export -o src/requirements.txt --without-hashes
