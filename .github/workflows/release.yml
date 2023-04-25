@@ -12,6 +12,9 @@ jobs:
         poetry-version: ["1.4"]
         os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -28,9 +31,6 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_SAR_PUBLISHER_ROLE }}
           aws-region: us-east-1
-          permissions:
-            id-token: write
-            contents: read
       - name: Build & Package & Publish
         run: |
           poetry export -o src/requirements.txt --without-hashes
