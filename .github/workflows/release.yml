@@ -39,4 +39,18 @@ jobs:
           poetry run sam package --s3-bucket nr-serverless-applications --output-template-file packaged.yaml
           poetry run sam publish --region us-east-1 --template packaged.yaml
 
-
+  notify:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Send release details to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "releaseNotes": "${{ github.event.release.body }}",
+              "releaseName": "${{ github.event.release.name }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
