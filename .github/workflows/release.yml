@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       id-token: write
-      contents: read  # It wasn't mentioned on the docs, without this checkout action doesn't work!
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
