@@ -49,8 +49,12 @@ jobs:
         with:
           payload: |
             {
-              "releaseUrl": "${{ github.event.release.html_url }}",
+              "releaseUrl": ":github: ${{ github.event.release.html_url }}",
               "releaseName": "${{ github.event.release.name }}"
+              "productName": "${{ env.PRODUCT_NAME }}"
+              "productUrl": "${{ env.PRODUCT_URL }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PRODUCT_NAME: NewRelic-log-ingestion
+          PRODUCT_URL: https://serverlessrepo.aws.amazon.com/applications/us-east-1/463657938898/NewRelic-log-ingestion
