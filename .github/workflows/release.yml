@@ -50,8 +50,8 @@ jobs:
           payload: |
             {
               "releaseUrl": ":github: ${{ github.event.release.html_url }}",
-              "releaseName": "${{ github.event.release.name }}"
-              "productName": "${{ env.PRODUCT_NAME }}"
+              "releaseName": "${{ github.event.release.name }}",
+              "productName": "${{ env.PRODUCT_NAME }}",
               "productUrl": "${{ env.PRODUCT_URL }}"
             }
         env:
