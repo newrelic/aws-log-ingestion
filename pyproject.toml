@@ -7,7 +7,7 @@ license = "Apache 2.0"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-aiohttp = "^3.7.4"
+aiohttp = "^3.8.4"
 
 [tool.poetry.group.dev.dependencies]
 asynctest = "^0.13.0"
