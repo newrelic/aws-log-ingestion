@@ -1,0 +1,45 @@
+name: New Relic - AWS Logs Ingestion - Pull Request
+
+on: [pull_request]
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.4"]
+        os: [ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Install Project
+        run: poetry install --no-interaction
+      - name: Lint
+        run: |
+          poetry run flake8 src test
+          poetry run black --check src test
+  test:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        poetry-version: ["1.4"]
+        os: [ubuntu-20.04, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      - name: Install Project
+        run: poetry install --no-interaction
+      - name: Test
+        run: poetry run pytest

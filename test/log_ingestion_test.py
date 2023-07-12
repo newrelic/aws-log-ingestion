@@ -12,7 +12,7 @@ from test.mock_http_response import MockHttpResponse
 from test.aws_log_events import AwsLogEvents
 
 import asyncio
-from asynctest import CoroutineMock
+from asynctest import CoroutineMock, MagicMock
 
 US_URL = "https://log-api.newrelic.com/log/v1"
 EU_URL = "https://log-api.eu.newrelic.com/log/v1"
@@ -58,6 +58,22 @@ def event_loop():
 def mock_aio_post():
     with patch("aiohttp.ClientSession.post", new=CoroutineMock()) as mocked_aio_post:
         yield mocked_aio_post
+
+
+class AsyncContextManagerMock(MagicMock):
+    async def __aenter__(self):
+        return self.aenter
+
+    async def __aexit__(self, *args):
+        pass
+
+
+@pytest.fixture
+def mock_aio_session():
+    with patch(
+        "aiohttp.ClientSession", new=AsyncContextManagerMock()
+    ) as mocked_aio_session:
+        yield mocked_aio_session
 
 
 @patch.dict(
@@ -441,6 +457,69 @@ def test_when_first_two_calls_fail_code_should_retry(mock_aio_post):
     assert mock_aio_post.call_count == 3
 
 
+def test_session_duration_properly_calculated():
+    # Mock function configuration
+    function.MAX_RETRIES = 3
+    function.INITIAL_BACKOFF = 1
+    function.BACKOFF_MULTIPLIER = 2
+    function.INDIVIDUAL_REQUEST_TIMEOUT_DURATION = 3
+    function.SESSION_MAX_PROCESSING_TIME = 1
+
+    """
+    Diagram of performed calls:
+        - Call 0: 3s
+        - Backoff 0: 1s (initial)
+        - Call 1: 3s
+        - Backoff 1: 1 * 2s (initial * multiplier)
+        - Call 2: 3s
+        - session_max_processing_time: 1s
+        TOTAL: 8s
+    """
+    expected_max_session_time = 13
+
+    assert function._calculate_session_timeout() == expected_max_session_time
+
+
+def test_when_session_timeouts_exception_should_be_raised(mock_aio_session):
+    expected_message = "timeout_in_session"
+    mock_aio_session.side_effect = asyncio.TimeoutError(expected_message)
+    event = aws_log_events.create_aws_event(["Test Message 1"])
+
+    with pytest.raises(asyncio.TimeoutError) as excinfo:
+        function.lambda_handler(event, context)
+        pytest.fail("TimeoutError should have been raised by the ClientSession")
+
+    assert expected_message == str(excinfo.value)
+
+
+def test_when_exception_is_thrown_it_should_be_raised(mock_aio_session):
+    expected_message = "unexpected_exception_in_session"
+    mock_aio_session.side_effect = IOError(expected_message)
+    event = aws_log_events.create_aws_event(["Test Message 1"])
+
+    with pytest.raises(IOError) as excinfo:
+        function.lambda_handler(event, context)
+        pytest.fail(
+            "An unexpected exception should have been raised by the ClientSession"
+        )
+
+    assert expected_message == str(excinfo.value)
+
+
+def test_when_first_call_timeouts_code_should_retry(mock_aio_post):
+    # First two calls timeout, and then third succeeds
+    mock_aio_post.side_effect = [
+        aio_post_timeout(),
+        aio_post_timeout(),
+        aio_post_response(),
+    ]
+    event = aws_log_events.create_aws_event(["Test Message 1"])
+
+    function.lambda_handler(event, context)
+
+    assert mock_aio_post.call_count == 3
+
+
 def test_logs_have_logstream_and_loggroup(mock_aio_post):
     mock_aio_post.return_value = aio_post_response()
     message = "Test Message 1"
@@ -511,8 +590,12 @@ def test_lambda_request_ids_are_extracted(mock_aio_post):
     assert messages[4]["attributes"]["aws"]["requestId"] == expected_request_id2
 
 
-async def aio_post_response():
+def aio_post_response():
     return MockHttpResponse("", 202)
+
+
+def aio_post_timeout():
+    return asyncio.TimeoutError()
 
 
 def urlopen_error_response():

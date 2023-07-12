@@ -1,5 +1,5 @@
 #!/bin/bash
 
-pipenv lock --requirements --keep-outdated > ./src/requirements.txt
-
-sam build --use-container
+poetry install
+poetry export -o ./src/requirements.txt --without-hashes
+poetry run sam build --use-container

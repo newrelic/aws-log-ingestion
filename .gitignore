@@ -14,9 +14,11 @@ __pycache__/
 
 packaged.yaml
 .aws-sam/
+samconfig.toml
 /src/requirements.txt
 
 .serverless
 node_modules
 package.json
 package-lock.json
+*.zip

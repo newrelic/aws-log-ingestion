@@ -21,7 +21,7 @@ It expects to be invoked based on CloudWatch Logs streams.
 New Relic's license key must be encrypted using KMS following these
 instructions:
 
-1. After creating te Lambda based on the Blueprint, select it and open the
+1. After creating the Lambda based on the Blueprint, select it and open the
 Environment Variables section.
 
 2. Check that the "LICENSE_KEY" environment variable if properly filled-in.
@@ -37,8 +37,10 @@ https://docs.newrelic.com/
 import datetime
 import gzip
 import json
+import logging
 import os
 import re
+import time
 
 from base64 import b64decode
 from enum import Enum
@@ -46,6 +48,8 @@ from urllib import request
 
 import aiohttp
 import asyncio
+
+logger = logging.getLogger()
 
 try:
     import newrelic.agent
@@ -58,8 +62,10 @@ else:
 # Retrying configuration.
 # Increasing these numbers will make the function longer in case of
 # communication failures and that will increase the cost.
-# Decreasing these number could increase the probility of data loss.
+# Decreasing these number could increase the probability of data loss.
 
+# Upon receiving the following error codes, the request will be retried up to MAX_RETRIES times
+RETRYABLE_ERROR_CODES = [408, 429]
 # Maximum number of retries
 MAX_RETRIES = 3
 # Initial backoff (in seconds) between retries
@@ -68,9 +74,17 @@ INITIAL_BACKOFF = 1
 BACKOFF_MULTIPLIER = 2
 # Max length in bytes of the payload
 MAX_PAYLOAD_SIZE = 1000 * 1024
+# Individual request timeout in seconds (non-configurable)
+INDIVIDUAL_REQUEST_TIMEOUT_DURATION = 3
+INDIVIDUAL_REQUEST_TIMEOUT = aiohttp.ClientTimeout(
+    total=INDIVIDUAL_REQUEST_TIMEOUT_DURATION
+)
+# Session max processing time (non-configurable).
+# Reserves a time buffer for logs to be formatted before being sent.
+SESSION_MAX_PROCESSING_TIME = 1
 
-LAMBDA_LOG_GROUP_PREFIX = "/aws/lambda"
-VPC_LOG_GROUP_PREFIX = "/aws/vpc/flow-logs"
+LAMBDA_LOG_GROUP_PREFIX = os.getenv("NR_LAMBDA_LOG_GROUP_PREFIX", "/aws/lambda")
+VPC_LOG_GROUP_PREFIX = os.getenv("NR_VPC_LOG_GROUP_PREFIX", "/aws/vpc/flow-logs")
 
 LAMBDA_NR_MONITORING_PATTERN = re.compile(r'.*"NR_LAMBDA_MONITORING')
 REPORT_PATTERN = re.compile("REPORT RequestId:")
@@ -104,7 +118,7 @@ LAMBDA_REQUEST_ID_REGEX = re.compile(
     r"(?P<request_id>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
 )
 
-LOGGING_LAMBDA_VERSION = "1.0.2"
+LOGGING_LAMBDA_VERSION = "1.0.3"
 LOGGING_PLUGIN_METADATA = {"type": "lambda", "version": LOGGING_LAMBDA_VERSION}
 
 
@@ -125,14 +139,16 @@ async def http_post(session, url, data, headers):
 
     while retries < MAX_RETRIES:
         if retries > 0:
-            print("Retrying in {} seconds".format(backoff))
+            logger.info("Retrying in {} seconds".format(backoff))
             await asyncio.sleep(backoff)
             backoff *= BACKOFF_MULTIPLIER
 
         retries += 1
 
         try:
-            resp = await session.post(url, data=data, headers=headers)
+            resp = await session.post(
+                url, data=data, headers=headers, timeout=INDIVIDUAL_REQUEST_TIMEOUT
+            )
             resp.raise_for_status()
             return resp.status, resp.url
         except aiohttp.ClientResponseError as e:
@@ -144,12 +160,16 @@ async def http_post(session, url, data, headers):
                 raise BadRequestException(
                     _format_error(e, "Review the region endpoint")
                 )
-            elif e.status == 429:
-                print("There was a {} error. Reason: {}".format(e.status, e.message))
+            elif e.status in RETRYABLE_ERROR_CODES:
+                logger.warning(f"There was a {e.status} error. Reason: {e.message}")
                 # Now retry the request
                 continue
             elif 400 <= e.status < 500:
                 raise BadRequestException(e)
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout on {url} at attempt {retries}/{MAX_RETRIES}")
+            # Now retry the request
+            continue
 
     raise MaxRetriesException()
 
@@ -169,6 +189,20 @@ def _filter_log_lines(log_entry):
     return ret
 
 
+def _calculate_session_timeout():
+    # Request 0
+    total = INDIVIDUAL_REQUEST_TIMEOUT_DURATION
+
+    # Requests 1 to N-1
+    backoff = INITIAL_BACKOFF
+    for retry in range(MAX_RETRIES - 1):
+        total += backoff + INDIVIDUAL_REQUEST_TIMEOUT_DURATION
+        backoff *= BACKOFF_MULTIPLIER
+
+    # Finally, add maximum worst-case-scenario expected processing time
+    return total + SESSION_MAX_PROCESSING_TIME
+
+
 async def _send_log_entry(log_entry, context):
     """
     This function sends the log entry to New Relic Infrastructure's ingest
@@ -184,7 +218,11 @@ async def _send_log_entry(log_entry, context):
         "log_stream_name": context.log_stream_name,
     }
 
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3)) as session:
+    session_timeout = _calculate_session_timeout()
+
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=session_timeout), trust_env=True
+    ) as session:
         # Both Infrastructure and Logging require a "LICENSE_KEY" environment variable.
         # In order to send data to the Infrastructure Pipeline, the customer doesn't need
         # to do anything. To disable it, they'll set "INFRA_ENABLED" to "false".
@@ -219,7 +257,13 @@ async def _send_log_entry(log_entry, context):
                 requests.append(
                     _send_payload(_get_logging_request_creator(payload), session)
                 )
-        return await asyncio.gather(*requests)
+
+        logger.debug("Sending data to New Relic.....")
+        ini = time.perf_counter()
+        result = await asyncio.gather(*requests)
+        elapsed_millis = (time.perf_counter() - ini) * 1000
+        logger.debug(f"Time elapsed to send to New Relic: {elapsed_millis:0.2f}ms")
+        return result
 
 
 async def _send_payload(request_creator, session, retry=False):
@@ -229,13 +273,19 @@ async def _send_payload(request_creator, session, retry=False):
             session, req.get_full_url(), req.data, req.headers
         )
     except MaxRetriesException as e:
-        print("Retry limit reached. Failed to send log entry.")
+        logger.error("Retry limit reached. Failed to send log entry.")
         if retry:
             raise e
     except BadRequestException as e:
-        print(e)
+        logger.error(e)
+    except asyncio.TimeoutError as e:
+        logger.error("Session timed out. Failed to send log entry.")
+        raise e
+    except Exception as e:
+        logger.error(f"Error occurred: {e}")
+        raise e
     else:
-        print("Log entry sent. Response code: {}. url: {}".format(status, url))
+        logger.info("Log entry sent. Response code: {}. url: {}".format(status, url))
         return status
 
 
@@ -273,10 +323,11 @@ def _get_newrelic_tags(payload):
     e.g. env:prod;team:myTeam
     """
     nr_tags_str = os.getenv("NR_TAGS", "")
+    nr_delimiter = os.getenv("NR_ENV_DELIMITER", ";")
     if nr_tags_str:
         nr_tags = dict(
             item.split(":")
-            for item in nr_tags_str.split(";")
+            for item in nr_tags_str.split(nr_delimiter)
             if not item.startswith(tuple(["aws:", "plugin:"]))
         )
         payload[0]["common"]["attributes"].update(nr_tags)
@@ -408,6 +459,18 @@ def _get_logging_request_creator(payload, ingest_url=None, license_key=None):
     return create_request
 
 
+def _set_console_logging_level():
+    """
+    Determines whether or not debug logging should be enabled based on the env var.
+    Defaults to false.
+    """
+    if _debug_logging_enabled():
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Enabled debug mode")
+    else:
+        logger.setLevel(logging.INFO)
+
+
 def _get_logging_endpoint(ingest_url=None):
     """
     Service url is determined by the lincese key's region.
@@ -432,13 +495,20 @@ def _package_log_payload(data):
     log_events = entry["logEvents"]
     log_messages = []
     lambda_request_id = None
+    trace_id = ""
 
     for log_event in log_events:
+        if LAMBDA_NR_MONITORING_PATTERN.match(log_event["message"]):
+            trace_id = _get_trace_id(log_event["message"])
+
         log_message = {
             "message": log_event["message"],
             "timestamp": log_event["timestamp"],
             "attributes": {"aws": {}},
         }
+
+        if trace_id:
+            log_message["trace.id"] = trace_id
 
         for event_key in log_event:
             if event_key not in ("id", "message", "timestamp"):
@@ -495,6 +565,39 @@ def _reconstruct_log_payload(common, logs):
     return [{"common": common, "logs": logs}]
 
 
+def _get_trace_id(message_str):
+    """
+    message_str: str
+        message = "[
+            1,
+            \"NR_LAMBDA_MONITORING\",
+            \"base64.b64encode(gzip.compress(message)).decode("utf-8")\",
+        ]"
+    """
+
+    def extract_trace_id(key):
+        try:
+            return data[key][2][0][0]["traceId"]
+        except Exception:
+            logger.debug(f"No trace ID found in {key}")
+            return ""
+
+    trace_id = ""
+    try:
+        message = json.loads(message_str)
+        data_str = gzip.decompress(b64decode(message[2])).decode("utf-8")
+        data = json.loads(data_str)["data"]
+
+        trace_id = extract_trace_id("analytic_event_data")
+        if trace_id:
+            return trace_id
+        else:
+            return extract_trace_id("span_event_data")
+    except Exception:
+        logger.debug("Failed to decode payload")
+        return trace_id
+
+
 ####################
 #  Lambda handler  #
 ####################
@@ -507,6 +610,8 @@ def lambda_handler(event, context):
     function's configuration.
     """
 
+    _set_console_logging_level()
+
     # CloudWatch Log entries are compressed and encoded in Base64
     event_data = b64decode(event["awslogs"]["data"])
     log_entry_str = gzip.decompress(event_data).decode("utf-8")
@@ -514,18 +619,17 @@ def lambda_handler(event, context):
 
     # output additional helpful info if debug logging is enabled
     # not enabled by default since parsing into json might be slow
-    if _debug_logging_enabled():
-        # calling '[0]' without a safety check looks sketchy, but Cloudwatch is never going
-        # to send us a log without at least one event
-        print(
-            "logGroup: {}, logStream: {}, timestamp: {}".format(
-                log_entry["logGroup"],
-                log_entry["logStream"],
-                datetime.datetime.fromtimestamp(
-                    log_entry["logEvents"][0]["timestamp"] / 1000.0
-                ),
-            )
+    # calling '[0]' without a safety check looks sketchy, but Cloudwatch is never going
+    # to send us a log without at least one event
+    logger.debug(
+        "logGroup: {}, logStream: {}, timestamp: {}".format(
+            log_entry["logGroup"],
+            log_entry["logStream"],
+            datetime.datetime.fromtimestamp(
+                log_entry["logEvents"][0]["timestamp"] / 1000.0
+            ),
         )
+    )
 
     asyncio.run(_send_log_entry(log_entry, context))
     # This makes it possible to chain this CW log consumer with others using a success destination
