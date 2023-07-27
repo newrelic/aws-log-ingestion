@@ -62,7 +62,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.7.1
+    SemanticVersion: 2.7.2
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -74,7 +74,7 @@ Resources:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Join ['-', ['newrelic-log-ingestion', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       MemorySize:
         Ref: MemorySize
       Runtime: python3.9
@@ -96,7 +96,7 @@ Resources:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Join ['-', ['newrelic-log-ingestion', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       MemorySize:
         Ref: MemorySize
       Runtime: python3.9
