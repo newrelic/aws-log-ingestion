@@ -193,7 +193,7 @@ resource "aws_lambda_function" "ingestion_function" {
     : aws_iam_role.lambda_role.0.arn
   )
   runtime      = "python3.9"
-  filename     = var.use_image_uri ? "" : local.archive_name
+  filename     = var.use_image_uri ? null : local.archive_name
   image_uri    = var.use_image_uri ? var.image_uri : null
   package_type = var.use_image_uri ? "Image" : "Zip"
   handler      = "function.lambda_handler"
