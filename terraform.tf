@@ -50,6 +50,12 @@ variable "lambda_image_name" {
   default     = "newrelic-log-ingestion"
 }
 
+variable "use_filename" {
+  description = "Set to true to use filename, or false to use image_uri."
+  type        = bool
+  default     = true # Set to true by default, or you can change the default as needed.
+}
+
 variable "use_image_uri" {
   description = "Set to true to use image_uri, or false to use filename."
   type        = bool
@@ -193,8 +199,8 @@ resource "aws_lambda_function" "ingestion_function" {
     : aws_iam_role.lambda_role.0.arn
   )
   runtime      = "python3.9"
-  filename     = var.use_image_uri ? null : local.archive_name
-  image_uri    = var.use_image_uri ? var.image_uri : null
+  #filename     = var.use_image_uri ? null : local.archive_name
+  #image_uri    = var.use_image_uri ? var.image_uri : null
   package_type = var.use_image_uri ? "Image" : "Zip"
   handler      = "function.lambda_handler"
   memory_size  = var.memory_size
@@ -206,6 +212,21 @@ resource "aws_lambda_function" "ingestion_function" {
       LOGGING_ENABLED = var.nr_logging_enabled ? "True" : "False"
       INFRA_ENABLED   = var.nr_infra_logging ? "True" : "False"
       NR_TAGS         = var.nr_tags
+    }
+  }
+
+  # Conditional logic to choose between deployment package and container image
+  dynamic "filename" {
+    for_each = var.use_filename ? [1] : []
+    content {
+      filename = local.archive_name
+    }
+  }
+
+  dynamic "image_uri" {
+    for_each = var.use_image_uri ? [1] : []
+    content {
+      image_uri = var.image_uri
     }
   }
 
