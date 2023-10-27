@@ -1,0 +1,50 @@
+name: Build and push base image to ECR
+
+env:
+  ECR_REGISTRY: 654879493693.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: newrelic
+
+on:
+  push:
+    branches:
+      - master
+  # Note that builds will happen in PRs as well (useful for testing)
+#  pull_request:
+#    branches:
+#      - master
+
+jobs:
+  ecr-push:
+    name: Push to ECR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{env.ECR_REGISTRY}}
+          username: ${{secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+
+      - name: Generate Build Number
+        run: |
+          echo "$(date +'%Y%m%d%H%M%S')"
+          echo "NOW=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
+      - name: Build images
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.NOW }} -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+                 
+      - name: Push images to AWS ECR
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.NOW }}
+        continue-on-error: true
+
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout $ECR_REGISTRY

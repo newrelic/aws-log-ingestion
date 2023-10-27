@@ -50,6 +50,16 @@ variable "lambda_image_name" {
   default     = "newrelic-log-ingestion"
 }
 
+variable "use_image_uri" {
+  description = "Set to true to use image_uri, or false to use filename."
+  type        = bool
+}
+
+variable "image_uri" {
+  description = "The URI of the container image to use if 'use_image_uri' is set to true."
+  type        = string
+}
+
 variable "memory_size" {
   type        = number
   description = "Memory size for the New Relic Log Ingestion Lambda function"
@@ -182,11 +192,13 @@ resource "aws_lambda_function" "ingestion_function" {
     ? var.function_role
     : aws_iam_role.lambda_role.0.arn
   )
-  runtime     = "python3.9"
-  filename    = local.archive_name
-  handler     = "function.lambda_handler"
-  memory_size = var.memory_size
-  timeout     = var.timeout
+  runtime      = "python3.9"
+  filename     = var.use_image_uri ? "" : local.archive_name
+  image_uri    = var.use_image_uri ? var.image_uri : null
+  package_type = var.use_image_uri ? "Image" : "Zip"
+  handler      = "function.lambda_handler"
+  memory_size  = var.memory_size
+  timeout      = var.timeout
 
   environment {
     variables = {
