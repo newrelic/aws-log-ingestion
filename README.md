@@ -59,7 +59,9 @@ module "newrelic_log_ingestion" {
 }
 ```
 
-By default, this will build and pack the lambda zip inside of the Terraform Module. You can supply your own by switching `build_lambda = false`, and specify the path to your lambda, using `lambda_archive = "{{LAMBDA_PATH}}"`, replacing `{{LAMBDA_PATH}}` with the path to your lambda.
+By default, this will build and pack the lambda zip inside of the Terraform Module. You can supply your own by switching `build_lambda = false`, and specify the path to your lambda, using `lambda_archive = "{{LAMBDA_PATH}}"`, replacing `{{LAMBDA_PATH}}` with the path to your lambda. 
+
+If you want to build your lambda using image_uri option the you can supply `build_lambda = false` & `use_image_uri = true` and then you can pass the URI of the image with its repo by using option `image_uri`.
 
 ## Infra Payload Format
 

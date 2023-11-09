@@ -90,6 +90,12 @@ variable "lambda_log_retention_in_days" {
   default     = 7
 }
 
+variable "lifecycle_ignore_changes" {
+  type = list()
+  description = "List of attributes which needs to be ignored if some change happens"
+  default = []
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags to add to the resources created"
@@ -207,6 +213,10 @@ resource "aws_lambda_function" "ingestion_function" {
       INFRA_ENABLED   = var.nr_infra_logging ? "True" : "False"
       NR_TAGS         = var.nr_tags
     }
+  }
+
+  lifecycle {
+    ignore_changes = var.lifecycle_ignore_changes
   }
 
   tags = local.tags
