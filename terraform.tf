@@ -210,7 +210,7 @@ resource "aws_lambda_function" "ingestion_function" {
   }
 
   lifecycle {
-    ignore_changes = ["image_uri"]
+    ignore_changes = [image_uri]
   }
 
   tags = local.tags
