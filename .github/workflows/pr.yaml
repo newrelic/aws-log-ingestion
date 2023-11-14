@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11"]
-        poetry-version: ["1.7"]
+        poetry-version: ["1.4"]
         os: [ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
