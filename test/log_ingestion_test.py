@@ -56,7 +56,7 @@ def event_loop():
 
 @pytest.fixture
 def mock_aio_post():
-    with patch("aiohttp.ClientSession.post",  new=AsyncMock()) as mocked_aio_post:
+    with patch("aiohttp.ClientSession.post", new=AsyncMock()) as mocked_aio_post:
         yield mocked_aio_post
 
 
