@@ -12,7 +12,7 @@ from test.mock_http_response import MockHttpResponse
 from test.aws_log_events import AwsLogEvents
 
 import asyncio
-from asynctest import CoroutineMock, MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 US_URL = "https://log-api.newrelic.com/log/v1"
 EU_URL = "https://log-api.eu.newrelic.com/log/v1"
@@ -56,7 +56,7 @@ def event_loop():
 
 @pytest.fixture
 def mock_aio_post():
-    with patch("aiohttp.ClientSession.post", new=CoroutineMock()) as mocked_aio_post:
+    with patch("aiohttp.ClientSession.post",  new=AsyncMock()) as mocked_aio_post:
         yield mocked_aio_post
 
 
