@@ -80,6 +80,12 @@ variable "lambda_log_retention_in_days" {
   default     = 7
 }
 
+variable "reserved_concurrent_executions" {
+  type        = number
+  description = "Amount of reserved concurrent executions for this lambda function"
+  default     = null
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags to add to the resources created"
@@ -182,11 +188,12 @@ resource "aws_lambda_function" "ingestion_function" {
     ? var.function_role
     : aws_iam_role.lambda_role.0.arn
   )
-  runtime     = "python3.9"
-  filename    = local.archive_name
-  handler     = "function.lambda_handler"
-  memory_size = var.memory_size
-  timeout     = var.timeout
+  runtime                        = "python3.9"
+  filename                       = local.archive_name
+  handler                        = "function.lambda_handler"
+  memory_size                    = var.memory_size
+  timeout                        = var.timeout
+  reserved_concurrent_executions = var.reserved_concurrent_executions
 
   environment {
     variables = {
