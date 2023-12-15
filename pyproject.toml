@@ -1,16 +1,15 @@
 [tool.poetry]
 name = "aws-log-ingestion"
-version = "2.8.0"
+version = "2.9.0"
 description = ""
 authors = ["New Relic <serverless@newrelic.com>"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.11"
 aiohttp = "^3.8.4"
 
 [tool.poetry.group.dev.dependencies]
-asynctest = "^0.13.0"
 aws-sam-cli = "^1.33.0"
 black = "^23.3.0"
 boto3 = "^1.19.2"
@@ -20,6 +19,7 @@ mock = "^4.0.3"
 pytest = "^6.2.5"
 pytest-asyncio = "^0.16.0"
 serverlessrepo = {git = "https://github.com/kolanos/aws-serverlessrepo-python.git", rev = "master"}
+pyyaml = "!=5.4.1, !=5.4.0" # pyyaml is broken with cython 3
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -27,7 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ['py311']
 include = '\.pyi?$'
 exclude = '''
 /(
