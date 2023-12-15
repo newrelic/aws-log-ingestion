@@ -8,7 +8,7 @@ jobs:
   release:
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.10"]
         poetry-version: ["1.4"]
         os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
