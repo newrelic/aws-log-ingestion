@@ -6,7 +6,7 @@ authors = ["New Relic <serverless@newrelic.com>"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 aiohttp = "^3.8.4"
 
 [tool.poetry.group.dev.dependencies]
