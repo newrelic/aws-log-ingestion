@@ -62,7 +62,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.9.0
+    SemanticVersion: 2.9.1
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
