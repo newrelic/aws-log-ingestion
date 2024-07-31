@@ -319,8 +319,8 @@ def _get_license_key(license_key=None):
     """
     This functions gets New Relic's license key from env vars.
     """
-    if not license_key:
-        return ""
+    if license_key:
+        return license_key
 
     license_key_source = _get_license_key_source()
 
