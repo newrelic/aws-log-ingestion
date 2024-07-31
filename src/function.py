@@ -325,9 +325,9 @@ def _get_license_key(license_key=None):
     license_key_source = _get_license_key_source()
 
     if license_key_source == "ssm":
-        return _get_license_key_from_ssm(license_key)
+        return _get_license_key_from_ssm(os.getenv("LICENSE_KEY", ""))
     elif license_key_source == "secret_manager":
-        return _get_license_key_from_secret_manager(license_key)
+        return _get_license_key_from_secret_manager(os.getenv("LICENSE_KEY", ""))
     
     return os.getenv("LICENSE_KEY", "")
     
@@ -341,6 +341,9 @@ def _get_license_key_from_secret_manager(secret_name):
     Returns:
     - The value of the secret if found, otherwise None.
     """
+    if not secret_name:
+        return ""
+
     # Create a Secrets Manager client
     client = boto3.client('secretsmanager')
 
@@ -372,6 +375,8 @@ def _get_license_key_from_ssm(parameter_path):
     - The value of the parameter if found, otherwise None.
     """
     # Create an SSM client
+    if not parameter_path:
+        return ""
     client = boto3.client('ssm')
 
     try:
