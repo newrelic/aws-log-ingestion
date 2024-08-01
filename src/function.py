@@ -42,6 +42,9 @@ import os
 import re
 import time
 
+import boto3
+from botocore.exceptions import ClientError
+
 from base64 import b64decode
 from enum import Enum
 from urllib import request
@@ -306,13 +309,89 @@ def _generate_payloads(data, split_function):
     )
 
 
+def _get_license_key_source():
+    """
+    This function returns the source of the license key.
+    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secret_manager'.
+    Defaults to 'environment_var'.
+    """
+    return os.getenv("LICENSE_KEY_SRC", "environment_var")
+
+
 def _get_license_key(license_key=None):
     """
     This functions gets New Relic's license key from env vars.
     """
     if license_key:
         return license_key
+
+    license_key_source = _get_license_key_source()
+
+    if license_key_source == "ssm":
+        return _get_license_key_from_ssm(os.getenv("LICENSE_KEY", ""))
+    elif license_key_source == "secret_manager":
+        return _get_license_key_from_secret_manager(os.getenv("LICENSE_KEY", ""))
+
     return os.getenv("LICENSE_KEY", "")
+
+
+def _get_license_key_from_secret_manager(secret_name):
+    """
+    Fetches the secret value for the given secret name from AWS Secrets Manager.
+
+    Parameters:
+    - secret_name (str): The name of the secret to fetch.
+
+    Returns:
+    - The value of the secret if found, otherwise None.
+    """
+    if not secret_name:
+        return ""
+
+    # Create a Secrets Manager client
+    client = boto3.client("secretsmanager")
+
+    try:
+        # Attempt to get the secret value
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except ClientError as e:
+        # Handle the exception if the secret is not found or any other client error occurs
+        logger.error(f"Unable to retrieve secret {secret_name}: {e}")
+        return ""
+
+    # Check if the secret uses the Secrets Manager binary field or the string field
+    if "SecretString" in get_secret_value_response:
+        secret = get_secret_value_response["SecretString"]
+    else:
+        # For binary secrets, decode the binary data to get the secret string
+        secret = b64decode(get_secret_value_response["SecretBinary"])
+
+    return "" if not secret else secret
+
+
+def _get_license_key_from_ssm(parameter_path):
+    """
+    Fetches the parameter value for the given parameter path
+    from AWS Systems Manager Parameter Store.
+    Parameters:
+    - parameter_path (str): The path of the parameter to fetch.
+
+    Returns:
+    - The value of the parameter if found, otherwise None.
+    """
+    # Create an SSM client
+    if not parameter_path:
+        return ""
+    client = boto3.client("ssm")
+
+    try:
+        # Attempt to get the parameter value
+        response = client.get_parameter(Name=parameter_path, WithDecryption=True)
+        parameter_value = response["Parameter"]["Value"]
+        return parameter_value
+    except ClientError as e:
+        logger.error(f"Unable to retrieve parameter {parameter_path}: {e}")
+        return ""
 
 
 def _get_newrelic_tags(payload):

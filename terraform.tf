@@ -14,6 +14,16 @@ variable "nr_license_key" {
   sensitive   = true
 }
 
+variable "nr_license_key_source" {
+  type        = string
+  description = "The source of the NewRelic license key. Must be one of 'environment_var', 'ssm', or 'secret_manager'."
+  default     = "environment_var"
+  validation {
+    condition     = contains(["environment_var", "ssm", "secret_manager"], var.nr_license_key_source)
+    error_message = "The nr_license_key_source must be one of 'environment_var', 'ssm', or 'secret_manager'."
+  }
+}
+
 variable "nr_logging_enabled" {
   type        = bool
   description = "Determines if logs are forwarded to New Relic Logging"
@@ -191,6 +201,7 @@ resource "aws_lambda_function" "ingestion_function" {
   environment {
     variables = {
       LICENSE_KEY     = var.nr_license_key
+      LICENSE_KEY_SRC = var.nr_license_key_source
       LOGGING_ENABLED = var.nr_logging_enabled ? "True" : "False"
       INFRA_ENABLED   = var.nr_infra_logging ? "True" : "False"
       NR_TAGS         = var.nr_tags

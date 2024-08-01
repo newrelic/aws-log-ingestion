@@ -4,6 +4,8 @@ import os
 import pprint
 import pytest
 import uuid
+import boto3
+from botocore.exceptions import ClientError
 
 from base64 import b64decode
 from mock import patch
@@ -22,6 +24,9 @@ OTHER_URL = "http://some-other-endpoint/logs/v1"
 timestamp = 1548935491174
 logging_enabled = "true"
 infra_enabled = "false"  # These tests just test logging
+lisence_key_source_env_var = "environment_var"
+lisence_key_source_ssm = "ssm"
+lisence_key_source_secrets_manager = "secrets_manager"
 license_key = "testlicensekey"
 license_key_eu = "eutestlicensekey"
 log_group_name = "/aws/lambda/sam-node-test-dev-triggered"
@@ -74,6 +79,127 @@ def mock_aio_session():
         "aiohttp.ClientSession", new=AsyncContextManagerMock()
     ) as mocked_aio_session:
         yield mocked_aio_session
+
+
+@patch.dict(
+    os.environ,
+    {"LICENSE_KEY": license_key, "LICENSE_KEY_SRC": lisence_key_source_env_var},
+    clear=True,
+)
+def test_get_license_key_from_env_var():
+    assert function._get_license_key() == license_key
+
+
+@patch.dict(
+    os.environ,
+    {"LICENSE_KEY": license_key, "LICENSE_KEY_SRC": lisence_key_source_secrets_manager},
+    clear=True,
+)
+@patch("src.function._get_license_key_from_secret_manager")
+def test_get_license_from_key_secret_manager(mock_get_license_key_from_secret_manager):
+    mock_get_license_key_from_secret_manager.return_value = license_key
+
+    assert function._get_license_key() == license_key
+
+
+@patch.dict(
+    os.environ,
+    {"LICENSE_KEY": license_key, "LICENSE_KEY_SRC": lisence_key_source_ssm},
+    clear=True,
+)
+@patch("src.function._get_license_key_from_ssm")
+def test_get_license_from_key_ssm(mock_get_license_key_from_ssm):
+    mock_get_license_key_from_ssm.return_value = license_key
+    assert function._get_license_key() == license_key
+
+
+@pytest.fixture
+def mock_boto3_client():
+    with patch.object(boto3, "client") as mock:
+        yield mock
+
+
+def test_get_license_key_from_secret_manager_success(mock_boto3_client):
+    # Mock the Secrets Manager client response for a successful secret retrieval
+    mock_secret_value = {"SecretString": "my-secret-value"}
+    mock_boto3_client.return_value.get_secret_value.return_value = mock_secret_value
+
+    secret_name = "my-secret"
+    expected_secret_value = "my-secret-value"
+    actual_secret_value = function._get_license_key_from_secret_manager(secret_name)
+
+    mock_boto3_client.assert_called_once_with("secretsmanager")
+    mock_boto3_client.return_value.get_secret_value.assert_called_once_with(
+        SecretId=secret_name
+    )
+    assert actual_secret_value == expected_secret_value
+
+
+def test_get_license_key_from_secret_manager_not_found(mock_boto3_client):
+    # Mock the Secrets Manager client to raise a ClientError for a missing secret
+    mock_boto3_client.return_value.get_secret_value.side_effect = ClientError(
+        error_response={"Error": {"Code": "ResourceNotFoundException"}},
+        operation_name="GetSecretValue",
+    )
+
+    secret_name = "non-existent-secret"
+    expected_secret_value = None
+    actual_secret_value = function._get_license_key_from_secret_manager(secret_name)
+
+    mock_boto3_client.assert_called_once_with("secretsmanager")
+    mock_boto3_client.return_value.get_secret_value.assert_called_once_with(
+        SecretId=secret_name
+    )
+    assert actual_secret_value == expected_secret_value
+
+
+def test_get_license_key_from_secret_manager_empty_secret_name():
+    secret_name = ""
+    expected_secret_value = ""
+    actual_secret_value = function._get_license_key_from_secret_manager(secret_name)
+
+    assert actual_secret_value == expected_secret_value
+
+
+def test_get_license_key_from_ssm_success(mock_boto3_client):
+    # Mock the SSM client response for a successful parameter retrieval
+    mock_parameter_value = {"Parameter": {"Value": "my-parameter-value"}}
+    mock_boto3_client.return_value.get_parameter.return_value = mock_parameter_value
+
+    parameter_path = "my-parameter-path"
+    expected_parameter_value = "my-parameter-value"
+    actual_parameter_value = function._get_license_key_from_ssm(parameter_path)
+
+    mock_boto3_client.assert_called_once_with("ssm")
+    mock_boto3_client.return_value.get_parameter.assert_called_once_with(
+        Name=parameter_path, WithDecryption=True
+    )
+    assert actual_parameter_value == expected_parameter_value
+
+
+def test_get_license_key_from_ssm_not_found(mock_boto3_client):
+    # Mock the SSM client to raise a ClientError for a missing parameter
+    mock_boto3_client.return_value.get_parameter.side_effect = ClientError(
+        error_response={"Error": {"Code": "ParameterNotFound"}},
+        operation_name="GetParameter",
+    )
+
+    parameter_path = "non-existent-parameter-path"
+    expected_parameter_value = ""
+    actual_parameter_value = function._get_license_key_from_ssm(parameter_path)
+
+    mock_boto3_client.assert_called_once_with("ssm")
+    mock_boto3_client.return_value.get_parameter.assert_called_once_with(
+        Name=parameter_path, WithDecryption=True
+    )
+    assert actual_parameter_value == expected_parameter_value
+
+
+def test_get_license_key_from_ssm_empty_parameter_path():
+    parameter_path = ""
+    expected_parameter_value = ""
+    actual_parameter_value = function._get_license_key_from_ssm(parameter_path)
+    assert actual_parameter_value == expected_parameter_value
 
 
 @patch.dict(
