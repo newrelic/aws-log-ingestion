@@ -349,7 +349,7 @@ def _get_license_key_from_secret_manager(secret_name):
         return ""
 
     # Create a Secrets Manager client
-    client = boto3.client('secretsmanager')
+    client = boto3.client("secretsmanager")
 
     try:
         # Attempt to get the secret value
@@ -360,11 +360,11 @@ def _get_license_key_from_secret_manager(secret_name):
         return ""
 
     # Check if the secret uses the Secrets Manager binary field or the string field
-    if 'SecretString' in get_secret_value_response:
-        secret = get_secret_value_response['SecretString']
+    if "SecretString" in get_secret_value_response:
+        secret = get_secret_value_response["SecretString"]
     else:
         # For binary secrets, decode the binary data to get the secret string
-        secret = b64decode(get_secret_value_response['SecretBinary'])
+        secret = b64decode(get_secret_value_response["SecretBinary"])
 
     return "" if not secret else secret
 
@@ -382,12 +382,12 @@ def _get_license_key_from_ssm(parameter_path):
     # Create an SSM client
     if not parameter_path:
         return ""
-    client = boto3.client('ssm')
+    client = boto3.client("ssm")
 
     try:
         # Attempt to get the parameter value
         response = client.get_parameter(Name=parameter_path, WithDecryption=True)
-        parameter_value = response['Parameter']['Value']
+        parameter_value = response["Parameter"]["Value"]
         return parameter_value
     except ClientError as e:
         logger.error(f"Unable to retrieve parameter {parameter_path}: {e}")
