@@ -308,12 +308,15 @@ def _generate_payloads(data, split_function):
         split_data[1], split_function
     )
 
+
 def _get_license_key_source():
     """
     This function returns the source of the license key.
-    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secret_manager'."
+    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secret_manager'.
+    Defaults to 'environment_var'.
     """
     return os.getenv("LICENSE_KEY_SRC", "environment_var")
+
 
 def _get_license_key(license_key=None):
     """
@@ -328,9 +331,10 @@ def _get_license_key(license_key=None):
         return _get_license_key_from_ssm(os.getenv("LICENSE_KEY", ""))
     elif license_key_source == "secret_manager":
         return _get_license_key_from_secret_manager(os.getenv("LICENSE_KEY", ""))
-    
+
     return os.getenv("LICENSE_KEY", "")
-    
+
+
 def _get_license_key_from_secret_manager(secret_name):
     """
     Fetches the secret value for the given secret name from AWS Secrets Manager.
@@ -353,7 +357,7 @@ def _get_license_key_from_secret_manager(secret_name):
     except ClientError as e:
         # Handle the exception if the secret is not found or any other client error occurs
         logger.error(f"Unable to retrieve secret {secret_name}: {e}")
-        return None
+        return ""
 
     # Check if the secret uses the Secrets Manager binary field or the string field
     if 'SecretString' in get_secret_value_response:
@@ -362,12 +366,13 @@ def _get_license_key_from_secret_manager(secret_name):
         # For binary secrets, decode the binary data to get the secret string
         secret = b64decode(get_secret_value_response['SecretBinary'])
 
-    return "" if secret is None else secret
+    return "" if not secret else secret
+
 
 def _get_license_key_from_ssm(parameter_path):
     """
-    Fetches the parameter value for the given parameter path from AWS Systems Manager Parameter Store.
-
+    Fetches the parameter value for the given parameter path
+    from AWS Systems Manager Parameter Store.
     Parameters:
     - parameter_path (str): The path of the parameter to fetch.
 
