@@ -17,6 +17,7 @@ variable "nr_license_key" {
 variable "nr_license_key_source" {
   type        = string
   description = "The source of the NewRelic license key. Must be one of 'environment_var', 'ssm', or 'secret_manager'."
+  default     = "environment_var"
   validation {
     condition     = contains(["environment_var", "ssm", "secret_manager"], var.nr_license_key_source)
     error_message = "The nr_license_key_source must be one of 'environment_var', 'ssm', or 'secret_manager'."

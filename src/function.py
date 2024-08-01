@@ -313,7 +313,7 @@ def _get_license_key_source():
     This function returns the source of the license key.
     LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secret_manager'."
     """
-    return os.getenv("LICENSE_KEY_SRC", "true").lower() == "true"
+    return os.getenv("LICENSE_KEY_SRC", "environment_var")
 
 def _get_license_key(license_key=None):
     """
