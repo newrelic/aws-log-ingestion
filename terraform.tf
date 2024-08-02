@@ -149,10 +149,15 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   tags = local.tags
 }
 
-resource "null_resource" "build_lambda" {
-  count = var.build_lambda ? 1 : 0
-  // Depends on log group, just in case this is created in a brand new AWS Subaccount, and it doesn't have subscriptions yet.
-  depends_on = [aws_cloudwatch_log_group.lambda_logs]
+resource "terraform_data" "build_lambda" {
+  triggers_replace = {
+    log_group_arn     = aws_cloudwatch_log_group.lambda_logs.arn
+    build_lambda      = var.build_lambda ? "true" : "false"
+    archive_folder    = local.archive_folder
+    lambda_image_name = var.lambda_image_name
+    archive_name      = local.archive_name
+    archive_md5       = filemd5(local.archive_name)
+  }
 
   provisioner "local-exec" {
     // OS Agnostic folder creation.
@@ -183,7 +188,7 @@ resource "aws_lambda_function" "ingestion_function" {
   depends_on = [
     aws_iam_role.lambda_role,
     aws_cloudwatch_log_group.lambda_logs,
-    null_resource.build_lambda,
+    terraform_data.build_lambda,
   ]
 
   function_name = var.service_name
@@ -224,6 +229,6 @@ output "function_arn" {
 }
 
 output "lambda_archive" {
-  depends_on = [null_resource.build_lambda]
+  depends_on = [terraform_data.build_lambda]
   value      = local.archive_name
 }
