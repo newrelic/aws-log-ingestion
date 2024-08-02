@@ -160,8 +160,9 @@ resource "terraform_data" "build_lambda" {
   }
 
   provisioner "local-exec" {
+    // OS Agnostic folder creation.
     command = (local.archive_folder != "."
-      ? "mkdir -p ${local.archive_folder}"
+      ? "mkdir ${local.archive_folder} || mkdir -p ${local.archive_folder}"
       : "echo Folder Exists"
     )
     on_failure = continue
