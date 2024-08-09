@@ -312,7 +312,7 @@ def _generate_payloads(data, split_function):
 def _get_license_key_source():
     """
     This function returns the source of the license key.
-    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secret_manager'.
+    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secrets_manager'.
     Defaults to 'environment_var'.
     """
     return os.getenv("LICENSE_KEY_SRC", "environment_var")
@@ -329,13 +329,13 @@ def _get_license_key(license_key=None):
 
     if license_key_source == "ssm":
         return _get_license_key_from_ssm(os.getenv("LICENSE_KEY", ""))
-    elif license_key_source == "secret_manager":
-        return _get_license_key_from_secret_manager(os.getenv("LICENSE_KEY", ""))
+    elif license_key_source == "secrets_manager":
+        return _get_license_key_from_secrets_manager(os.getenv("LICENSE_KEY", ""))
 
     return os.getenv("LICENSE_KEY", "")
 
 
-def _get_license_key_from_secret_manager(secret_name):
+def _get_license_key_from_secrets_manager(secret_name):
     """
     Fetches the secret value for the given secret name from AWS Secrets Manager.
 

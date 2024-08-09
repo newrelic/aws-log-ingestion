@@ -16,11 +16,11 @@ variable "nr_license_key" {
 
 variable "nr_license_key_source" {
   type        = string
-  description = "The source of the NewRelic license key. Must be one of 'environment_var', 'ssm', or 'secret_manager'."
+  description = "The source of the NewRelic license key. Must be one of 'environment_var', 'ssm', or 'secrets_manager'."
   default     = "environment_var"
   validation {
-    condition     = contains(["environment_var", "ssm", "secret_manager"], var.nr_license_key_source)
-    error_message = "The nr_license_key_source must be one of 'environment_var', 'ssm', or 'secret_manager'."
+    condition     = contains(["environment_var", "ssm", "secrets_manager"], var.nr_license_key_source)
+    error_message = "The nr_license_key_source must be one of 'environment_var', 'ssm', or 'secrets_manager'."
   }
 }
 
@@ -168,20 +168,25 @@ resource "terraform_data" "build_lambda" {
     on_failure = continue
   }
 
-  provisioner "local-exec" {
-    command     = "docker build -t ${var.lambda_image_name} --network host ."
+    provisioner "local-exec" {
+    command     = "./build_archive.sh ${var.lambda_image_name} ${abspath(local.archive_name)}"
     working_dir = path.module
   }
 
-  provisioner "local-exec" {
-    command     = "docker run --rm --entrypoint cat ${var.lambda_image_name} /out.zip > ${abspath(local.archive_name)}"
-    working_dir = path.module
-  }
+  # provisioner "local-exec" {
+  #   command     = "docker build -t ${var.lambda_image_name} --network host ."
+  #   working_dir = path.module
+  # }
 
-  provisioner "local-exec" {
-    command    = "docker image rm ${var.lambda_image_name}"
-    on_failure = continue
-  }
+  # provisioner "local-exec" {
+  #   command     = "docker run --rm --entrypoint cat ${var.lambda_image_name} /out.zip > ${abspath(local.archive_name)}"
+  #   working_dir = path.module
+  # }
+
+  # provisioner "local-exec" {
+  #   command    = "docker image rm ${var.lambda_image_name}"
+  #   on_failure = continue
+  # }
 }
 
 resource "aws_lambda_function" "ingestion_function" {
