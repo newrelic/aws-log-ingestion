@@ -3,10 +3,10 @@
 cat /etc/*release*
 pwd
 ls -lrth
-apt-get update
-apt-get install -y zip
+yum update
+yum install -y zip
 
-pip install --no-cache-dir -r requirements.txt --target .
+pip install --no-cache-dir -r /src/requirements.txt --target .
 
 zip -r /out.zip .
 
