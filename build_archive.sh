@@ -1,5 +1,8 @@
 #!/bin/bash
 
+cat /etc/*release*
+pwd
+ls -lrth
 apt-get update
 apt-get install -y zip
 
