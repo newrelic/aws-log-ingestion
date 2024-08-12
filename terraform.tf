@@ -153,10 +153,8 @@ resource "terraform_data" "build_lambda" {
   triggers_replace = {
     log_group_arn     = aws_cloudwatch_log_group.lambda_logs.arn
     build_lambda      = var.build_lambda ? "true" : "false"
-    archive_folder    = local.archive_folder
     lambda_image_name = var.lambda_image_name
-    archive_name      = local.archive_name
-    archive_md5       = filemd5(local.archive_name)
+    md5_hash          = filemd5(path.module/"src/function.py")
   }
 
   provisioner "local-exec" {
@@ -191,7 +189,7 @@ resource "terraform_data" "build_lambda" {
 
 # data "archive_file" "newrelic_log_ingestion" {
 #   type        = "zip"
-#   source_dir  = "${path.module}/path/to/your/lambda/source/code"
+#   source_dir  = "${path.module}/src/function.py"
 #   output_path = "${path.module}/newrelic_log_ingestion.zip"
 # }
 
