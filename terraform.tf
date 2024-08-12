@@ -189,12 +189,25 @@ resource "terraform_data" "build_lambda" {
   # }
 }
 
+# data "archive_file" "newrelic_log_ingestion" {
+#   type        = "zip"
+#   source_dir  = "${path.module}/path/to/your/lambda/source/code"
+#   output_path = "${path.module}/newrelic_log_ingestion.zip"
+# }
+
+
 resource "aws_lambda_function" "ingestion_function" {
   depends_on = [
     aws_iam_role.lambda_role,
     aws_cloudwatch_log_group.lambda_logs,
     terraform_data.build_lambda,
   ]
+
+  lifecycle {
+    replace_triggered_by = [
+      terraform_data.build_lambda.archive_md5
+    ]
+  }
 
   function_name = var.service_name
   description   = "Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging"
