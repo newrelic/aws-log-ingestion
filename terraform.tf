@@ -154,7 +154,7 @@ resource "terraform_data" "build_lambda" {
     log_group_arn     = aws_cloudwatch_log_group.lambda_logs.arn
     build_lambda      = var.build_lambda ? "true" : "false"
     lambda_image_name = var.lambda_image_name
-    md5_hash          = filemd5(abspath("src/function.py"))
+    md5_hash          = filemd5(abspath(path.module/"src/function.py"))
   }
 
   provisioner "local-exec" {
