@@ -312,7 +312,7 @@ def _generate_payloads(data, split_function):
 def _get_license_key_source():
     """
     This function returns the source of the license key.
-    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secrets_manager'.
+    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secrets_manager'
     Defaults to 'environment_var'.
     """
     return os.getenv("LICENSE_KEY_SRC", "environment_var")

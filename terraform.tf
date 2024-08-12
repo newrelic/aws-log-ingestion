@@ -156,7 +156,7 @@ resource "terraform_data" "build_lambda" {
     archive_folder    = local.archive_folder
     lambda_image_name = var.lambda_image_name
     archive_name      = local.archive_name
-    archive_md5       = filemd5(abspath(local.archive_name))
+    archive_md5       = filemd5(abspath("src/function.py"))
   }
 
   provisioner "local-exec" {
