@@ -169,7 +169,7 @@ resource "terraform_data" "build_lambda" {
   }
 
     provisioner "local-exec" {
-    command     = "./build_archive.sh ${var.lambda_image_name} ${abspath(local.archive_name)}"
+    command     = "./build_archive.sh ${abspath(local.archive_name)}"
     working_dir = path.module
   }
 

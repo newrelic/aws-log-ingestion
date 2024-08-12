@@ -12,6 +12,4 @@ zip -r ./out.zip .
 
 ls -lrth
 
-cat ./out.zip > $2
-
-cat $1 ./out.zip > $2
+cat ./out.zip > $1
