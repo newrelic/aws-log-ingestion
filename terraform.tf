@@ -168,7 +168,7 @@ resource "terraform_data" "build_lambda" {
     on_failure = continue
   }
 
-    provisioner "local-exec" {
+  provisioner "local-exec" {
     command     = "./build_archive.sh ${abspath(local.archive_name)}"
     working_dir = path.module
   }
@@ -205,7 +205,7 @@ resource "aws_lambda_function" "ingestion_function" {
 
   lifecycle {
     replace_triggered_by = [
-      terraform_data.build_lambda.archive_md5
+      terraform_data.build_lambda
     ]
   }
 
