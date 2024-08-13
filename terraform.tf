@@ -149,13 +149,10 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   tags = local.tags
 }
 
-resource "terraform_data" "build_lambda" {
-  triggers_replace = {
-    log_group_arn     = aws_cloudwatch_log_group.lambda_logs.arn
-    build_lambda      = var.build_lambda ? "true" : "false"
-    lambda_image_name = var.lambda_image_name
-    md5_hash          = filemd5("${abspath(path.module)}/src/function.py")
-  }
+resource "null_resource" "build_lambda" {
+  count = var.build_lambda ? 1 : 0
+  // Depends on log group, just in case this is created in a brand new AWS Subaccount, and it doesn't have subscriptions yet.
+  depends_on = [aws_cloudwatch_log_group.lambda_logs]
 
   provisioner "local-exec" {
     // OS Agnostic folder creation.
@@ -167,45 +164,29 @@ resource "terraform_data" "build_lambda" {
   }
 
   provisioner "local-exec" {
-    command     = "./build_archive.sh ${abspath(local.archive_name)}"
+    command     = "docker build -t ${var.lambda_image_name} --network host ."
     working_dir = path.module
   }
 
-  # provisioner "local-exec" {
-  #   command     = "docker build -t ${var.lambda_image_name} --network host ."
-  #   working_dir = path.module
-  # }
+  provisioner "local-exec" {
+    command     = "docker run --rm --entrypoint cat ${var.lambda_image_name} /out.zip > ${abspath(local.archive_name)}"
+    working_dir = path.module
+  }
 
-  # provisioner "local-exec" {
-  #   command     = "docker run --rm --entrypoint cat ${var.lambda_image_name} /out.zip > ${abspath(local.archive_name)}"
-  #   working_dir = path.module
-  # }
-
-  # provisioner "local-exec" {
-  #   command    = "docker image rm ${var.lambda_image_name}"
-  #   on_failure = continue
-  # }
+  provisioner "local-exec" {
+    command    = "docker image rm ${var.lambda_image_name}"
+    on_failure = continue
+  }
 }
 
-# data "archive_file" "newrelic_log_ingestion" {
-#   type        = "zip"
-#   source_dir  = "${path.module}/src/function.py"
-#   output_path = "${path.module}/newrelic_log_ingestion.zip"
-# }
 
 
 resource "aws_lambda_function" "ingestion_function" {
   depends_on = [
     aws_iam_role.lambda_role,
     aws_cloudwatch_log_group.lambda_logs,
-    terraform_data.build_lambda,
+    null_resource.build_lambda,
   ]
-
-  lifecycle {
-    replace_triggered_by = [
-      terraform_data.build_lambda
-    ]
-  }
 
   function_name = var.service_name
   description   = "Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging"
@@ -245,6 +226,6 @@ output "function_arn" {
 }
 
 output "lambda_archive" {
-  depends_on = [terraform_data.build_lambda]
+  depends_on = [null_resource.build_lambda]
   value      = local.archive_name
 }
