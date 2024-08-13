@@ -349,12 +349,16 @@ def _get_license_key_from_secrets_manager(secret_name):
 
     # Check cache first if caching is enabled
     if enable_caching and secret_name in LICENSE_KEY_CACHE:
+        logger.info(
+            "Using cached secret instead of fetching the license key from secrets manager"
+        )
         return LICENSE_KEY_CACHE[secret_name]
 
     client = boto3.client("secretsmanager")
 
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        logger.info("Successfully retrieved license key from Secrets Manager")
     except ClientError as e:
         logger.error(f"Unable to retrieve secret {secret_name}: {e}")
         return ""
@@ -383,12 +387,16 @@ def _get_license_key_from_ssm(parameter_path):
 
     # Check cache first if caching is enabled
     if enable_caching and parameter_path in LICENSE_KEY_CACHE:
+        logger.info(
+            "Using cached parameter instead of fetching the license key from SSM"
+        )
         return LICENSE_KEY_CACHE[parameter_path]
 
     client = boto3.client("ssm")
 
     try:
         response = client.get_parameter(Name=parameter_path, WithDecryption=True)
+        logger.info("Successfully retrieved license key from SSM")
         parameter_value = response["Parameter"]["Value"]
     except ClientError as e:
         logger.error(f"Unable to retrieve parameter {parameter_path}: {e}")
