@@ -24,6 +24,12 @@ variable "nr_license_key_source" {
   }
 }
 
+variable "enable_caching_for_license_key" {
+  description = "Enable caching for the license key."
+  type        = bool
+  default     = false
+}
+
 variable "nr_logging_enabled" {
   type        = bool
   description = "Determines if logs are forwarded to New Relic Logging"
@@ -125,6 +131,33 @@ data "aws_iam_policy_document" "lambda_assume_policy" {
   }
 }
 
+resource "aws_iam_policy" "lambda_fetch_license_key_policy" {
+  name        = "lambda_fetch_license_key_policy"
+  description = "Policy for Lambda to fetch NewRelic license key from SSM Parameter or Secrets Manager"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "lambda_role" {
   count = var.function_role == null ? 1 : 0
 
@@ -141,6 +174,14 @@ resource "aws_iam_role_policy_attachment" "lambda_log_policy" {
   role       = aws_iam_role.lambda_role.0.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+resource "aws_iam_role_policy_attachment" "lambda_fetch_license_key_policy" {
+  count = var.function_role == null ? 1 : 0
+
+  role       = aws_iam_role.lambda_role.0.name
+  policy_arn = aws_iam_policy.lambda_fetch_license_key_policy.arn
+}
+
 
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${var.service_name}"
@@ -205,6 +246,7 @@ resource "aws_lambda_function" "ingestion_function" {
       LOGGING_ENABLED = var.nr_logging_enabled ? "True" : "False"
       INFRA_ENABLED   = var.nr_infra_logging ? "True" : "False"
       NR_TAGS         = var.nr_tags
+      ENABLE_CACHING = var.enable_caching_for_license_key ? "True" : "False"
     }
   }
 

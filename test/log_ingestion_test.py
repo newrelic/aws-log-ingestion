@@ -96,7 +96,9 @@ def test_get_license_key_from_env_var():
     clear=True,
 )
 @patch("src.function._get_license_key_from_secrets_manager")
-def test_get_license_from_key_secrets_manager(mock_get_license_key_from_secrets_manager):
+def test_get_license_from_key_secrets_manager(
+    mock_get_license_key_from_secrets_manager,
+):
     mock_get_license_key_from_secrets_manager.return_value = license_key
 
     assert function._get_license_key() == license_key
@@ -143,7 +145,7 @@ def test_get_license_key_from_secrets_manager_not_found(mock_boto3_client):
     )
 
     secret_name = "non-existent-secret"
-    expected_secret_value = None
+    expected_secret_value = ""
     actual_secret_value = function._get_license_key_from_secrets_manager(secret_name)
 
     mock_boto3_client.assert_called_once_with("secretsmanager")
