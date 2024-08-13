@@ -125,7 +125,7 @@ LOGGING_LAMBDA_VERSION = "2.9.3"
 LOGGING_PLUGIN_METADATA = {"type": "lambda", "version": LOGGING_LAMBDA_VERSION}
 
 # Global cache for storing new relic license keys
-LICENSE_KEY_CACHE = {}
+LICENSE_KEY_CACHE = None
 
 
 class MaxRetriesException(Exception):
@@ -342,17 +342,19 @@ def _get_license_key_from_secrets_manager(secret_name):
     """
     Fetches the secret value for the given secret name from AWS Secrets Manager.
     """
+    global LICENSE_KEY_CACHE
+
     if not secret_name:
         return ""
 
     enable_caching = os.getenv("ENABLE_CACHING", "false").lower() == "true"
 
     # Check cache first if caching is enabled
-    if enable_caching and secret_name in LICENSE_KEY_CACHE:
+    if enable_caching and LICENSE_KEY_CACHE is not None:
         logger.info(
             "Using cached secret instead of fetching the license key from secrets manager"
         )
-        return LICENSE_KEY_CACHE[secret_name]
+        return LICENSE_KEY_CACHE
 
     client = boto3.client("secretsmanager")
 
@@ -370,7 +372,7 @@ def _get_license_key_from_secrets_manager(secret_name):
 
     # Cache the secret before returning if caching is enabled
     if enable_caching:
-        LICENSE_KEY_CACHE[secret_name] = secret
+        LICENSE_KEY_CACHE = secret
 
     return "" if not secret else secret
 
@@ -380,17 +382,19 @@ def _get_license_key_from_ssm(parameter_path):
     Fetches the parameter value for the given parameter path
     from AWS Systems Manager Parameter Store.
     """
+    global LICENSE_KEY_CACHE
+
     if not parameter_path:
         return ""
 
     enable_caching = os.getenv("ENABLE_CACHING", "false").lower() == "true"
 
     # Check cache first if caching is enabled
-    if enable_caching and parameter_path in LICENSE_KEY_CACHE:
+    if enable_caching and LICENSE_KEY_CACHE is not None:
         logger.info(
             "Using cached parameter instead of fetching the license key from SSM"
         )
-        return LICENSE_KEY_CACHE[parameter_path]
+        return LICENSE_KEY_CACHE
 
     client = boto3.client("ssm")
 
@@ -404,7 +408,7 @@ def _get_license_key_from_ssm(parameter_path):
 
     # Cache the parameter before returning if caching is enabled
     if enable_caching:
-        LICENSE_KEY_CACHE[parameter_path] = parameter_value
+        LICENSE_KEY_CACHE = parameter_value
 
     return parameter_value
 
