@@ -179,8 +179,6 @@ resource "null_resource" "build_lambda" {
   }
 }
 
-
-
 resource "aws_lambda_function" "ingestion_function" {
   depends_on = [
     aws_iam_role.lambda_role,
