@@ -363,7 +363,7 @@ def _get_license_key_from_secrets_manager(secret_name):
         logger.info("Successfully retrieved license key from Secrets Manager")
     except ClientError as e:
         logger.error(f"Unable to retrieve secret {secret_name}: {e}")
-        return ""
+        raise e
 
     if "SecretString" in get_secret_value_response:
         secret = get_secret_value_response["SecretString"]
@@ -404,7 +404,7 @@ def _get_license_key_from_ssm(parameter_path):
         parameter_value = response["Parameter"]["Value"]
     except ClientError as e:
         logger.error(f"Unable to retrieve parameter {parameter_path}: {e}")
-        return ""
+        raise e
 
     # Cache the parameter before returning if caching is enabled
     if enable_caching:

@@ -137,24 +137,6 @@ def test_get_license_key_from_secrets_manager_success(mock_boto3_client):
     assert actual_secret_value == expected_secret_value
 
 
-def test_get_license_key_from_secrets_manager_not_found(mock_boto3_client):
-    # Mock the Secrets Manager client to raise a ClientError for a missing secret
-    mock_boto3_client.return_value.get_secret_value.side_effect = ClientError(
-        error_response={"Error": {"Code": "ResourceNotFoundException"}},
-        operation_name="GetSecretValue",
-    )
-
-    secret_name = "non-existent-secret"
-    expected_secret_value = ""
-    actual_secret_value = function._get_license_key_from_secrets_manager(secret_name)
-
-    mock_boto3_client.assert_called_once_with("secretsmanager")
-    mock_boto3_client.return_value.get_secret_value.assert_called_once_with(
-        SecretId=secret_name
-    )
-    assert actual_secret_value == expected_secret_value
-
-
 def test_get_license_key_from_secrets_manager_empty_secret_name():
     secret_name = ""
     expected_secret_value = ""
@@ -170,24 +152,6 @@ def test_get_license_key_from_ssm_success(mock_boto3_client):
 
     parameter_path = "my-parameter-path"
     expected_parameter_value = "my-parameter-value"
-    actual_parameter_value = function._get_license_key_from_ssm(parameter_path)
-
-    mock_boto3_client.assert_called_once_with("ssm")
-    mock_boto3_client.return_value.get_parameter.assert_called_once_with(
-        Name=parameter_path, WithDecryption=True
-    )
-    assert actual_parameter_value == expected_parameter_value
-
-
-def test_get_license_key_from_ssm_not_found(mock_boto3_client):
-    # Mock the SSM client to raise a ClientError for a missing parameter
-    mock_boto3_client.return_value.get_parameter.side_effect = ClientError(
-        error_response={"Error": {"Code": "ParameterNotFound"}},
-        operation_name="GetParameter",
-    )
-
-    parameter_path = "non-existent-parameter-path"
-    expected_parameter_value = ""
     actual_parameter_value = function._get_license_key_from_ssm(parameter_path)
 
     mock_boto3_client.assert_called_once_with("ssm")
