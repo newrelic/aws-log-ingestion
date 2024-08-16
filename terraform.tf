@@ -153,6 +153,13 @@ resource "aws_iam_policy" "lambda_fetch_license_key_policy" {
         ]
         Effect   = "Allow"
         Resource = "*"
+      },
+      {
+        Action = [
+          "kms:Decrypt"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
       }
     ]
   })
