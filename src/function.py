@@ -338,13 +338,13 @@ def _get_license_key(license_key=None):
     return os.getenv("LICENSE_KEY", "")
 
 
-def _get_license_key_from_secrets_manager(secret_name):
+def _get_license_key_from_secrets_manager(secret_arn):
     """
-    Fetches the secret value for the given secret name from AWS Secrets Manager.
+    Fetches the secret value for the given secret ARN from AWS Secrets Manager.
     """
     global LICENSE_KEY_CACHE
 
-    if not secret_name:
+    if not secret_arn:
         return ""
 
     enable_caching = os.getenv("ENABLE_CACHING", "false").lower() == "true"
@@ -359,11 +359,11 @@ def _get_license_key_from_secrets_manager(secret_name):
     client = boto3.client("secretsmanager")
 
     try:
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        get_secret_value_response = client.get_secret_value(SecretId=secret_arn)
         logger.info("Successfully retrieved license key from Secrets Manager")
     except ClientError as e:
-        logger.error(f"Unable to retrieve secret {secret_name}: {e}")
-        raise e
+        logger.error(f"Unable to retrieve secret {secret_arn}: {e}")
+        return ""
 
     if "SecretString" in get_secret_value_response:
         secret = get_secret_value_response["SecretString"]
