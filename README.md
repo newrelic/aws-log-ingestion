@@ -16,6 +16,18 @@ Additional notes:
 
 * Some users in UTF-8 environments have reported difficulty with defining strings of `NR_TAGS` delimited by the semicolon `;` character. If this applies to you, you can set an alternative delimiter character as the value of `NR_ENV_DELIMITER`, and separate your `NR_TAGS` with that.
 * Custom Lambda and VPC log groups can be set using the `NR_LAMBDA_LOG_GROUP_PREFIX` and `NR_VPC_LOG_GROUP_PREFIX` environment variables.
+* The New Relic License Key can now be fetched from multiple secure sources: 
+
+- **Environment Variables**
+- **AWS Systems Manager (SSM) Parameter Store**
+- **AWS Secrets Manager**
+
+A caching mechanism has also been added to store the New Relic License Key. This prevents fetching the key from AWS Secrets Manager or SSM Parameter Store on each Lambda execution, improving performance. 
+
+### Configuration
+
+- Set the `nr_license_key_source` variable to choose the source of the license key. The available options are `environment_var`, `ssm`, or `secrets_manager`. The default value is `environment_var`.
+- Set the `enable_caching_for_license_key` variable to `true` to enable caching for the New Relic License Key.
 
 ## Manual Deployment
 

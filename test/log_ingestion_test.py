@@ -145,6 +145,27 @@ def test_get_license_key_from_secrets_manager_empty_secret_name():
     assert actual_secret_value == expected_secret_value
 
 
+def test_get_license_key_from_secrets_manager_secret_not_found(mock_boto3_client):
+    # Setup the mock to raise a ClientError for a missing secret
+    mock_boto3_client.return_value.get_secret_value.side_effect = ClientError(
+        error_response={"Error": {"Code": "ResourceNotFoundException"}},
+        operation_name="GetSecretValue",
+    )
+
+    secret_arn = "arn:aws:secretsmanager:us-west-2:123456789012:secret:mySecret"
+
+    # Call the function with the secret ARN that does not exist
+    result = function._get_license_key_from_secrets_manager(secret_arn)
+
+    # Verify that the function returns an empty string for a missing secret
+    assert result == "", "Expected an empty string for a secret that does not exist"
+
+    # Verify that the secrets manager client was called with the correct parameters
+    mock_boto3_client.return_value.get_secret_value.assert_called_once_with(
+        SecretId=secret_arn
+    )
+
+
 def test_get_license_key_from_ssm_success(mock_boto3_client):
     # Mock the SSM client response for a successful parameter retrieval
     mock_parameter_value = {"Parameter": {"Value": "my-parameter-value"}}
@@ -159,6 +180,23 @@ def test_get_license_key_from_ssm_success(mock_boto3_client):
         Name=parameter_path, WithDecryption=True
     )
     assert actual_parameter_value == expected_parameter_value
+
+
+def test_get_license_key_from_ssm_not_found(mock_boto3_client):
+    # Mock the SSM client to raise a ClientError for a missing parameter
+    mock_boto3_client.return_value.get_parameter.side_effect = ClientError(
+        error_response={"Error": {"Code": "ParameterNotFound"}},
+        operation_name="GetParameter",
+    )
+
+    parameter_path = "non-existent-parameter-path"
+
+    # Expect the ClientError to be raised
+    with pytest.raises(ClientError) as excinfo:
+        function._get_license_key_from_ssm(parameter_path)
+
+    # Optionally, assert the exception message or code if necessary
+    assert "ParameterNotFound" in str(excinfo.value)
 
 
 def test_get_license_key_from_ssm_empty_parameter_path():
