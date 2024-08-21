@@ -99,15 +99,15 @@ enable_caching_for_license_key = true
 
 The maximum payload size in bytes is:
 
-[https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L76](https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L76)
+<https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L76>
 
 If your payload exceeds this size, you will need to split it into pieces:
 
-[https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L292-L306](https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L292-L306)
+https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L292-L306>
 
 The payload should be utf-8 encoded and then gzipped before sending:
 
-[https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L298](https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L298)
+<https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L298>
 
 The following GNU coreutils Bash command will reproduce the desired payload encoding and compression:
 
@@ -117,7 +117,7 @@ xclip -sel clip -o | iconv -cf utf-8 | gzip > payload.gz
 
 Required headers include:
 
-* [https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L360-L361](https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L360-L361)
+* <https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L360-L361>
 * `Accept-Encoding: gzip`
 * `Content-Length: <calculated when request is sent>`
 * `Host: <calculated when request is sent>`
