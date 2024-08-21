@@ -103,7 +103,7 @@ The maximum payload size in bytes is:
 
 If your payload exceeds this size, you will need to split it into pieces:
 
-https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L292-L306>
+<https://github.com/newrelic/aws-log-ingestion/blob/1430a247f1fb5feb844f0707838a6ef48d21fc41/src/function.py#L292-L306>
 
 The payload should be utf-8 encoded and then gzipped before sending:
 
