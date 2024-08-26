@@ -124,6 +124,9 @@ LAMBDA_REQUEST_ID_REGEX = re.compile(
 LOGGING_LAMBDA_VERSION = "2.9.3"
 LOGGING_PLUGIN_METADATA = {"type": "lambda", "version": LOGGING_LAMBDA_VERSION}
 
+# Global cache for storing new relic license keys
+LICENSE_KEY_CACHE = None
+
 
 class MaxRetriesException(Exception):
     pass
@@ -312,7 +315,7 @@ def _generate_payloads(data, split_function):
 def _get_license_key_source():
     """
     This function returns the source of the license key.
-    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secret_manager'.
+    LICENSE_KEY_SRC must be one of 'environment_var', 'ssm', or 'secrets_manager'.
     Defaults to 'environment_var'.
     """
     return os.getenv("LICENSE_KEY_SRC", "environment_var")
@@ -329,42 +332,47 @@ def _get_license_key(license_key=None):
 
     if license_key_source == "ssm":
         return _get_license_key_from_ssm(os.getenv("LICENSE_KEY", ""))
-    elif license_key_source == "secret_manager":
-        return _get_license_key_from_secret_manager(os.getenv("LICENSE_KEY", ""))
+    elif license_key_source == "secrets_manager":
+        return _get_license_key_from_secrets_manager(os.getenv("LICENSE_KEY", ""))
 
     return os.getenv("LICENSE_KEY", "")
 
 
-def _get_license_key_from_secret_manager(secret_name):
+def _get_license_key_from_secrets_manager(secret_arn):
     """
-    Fetches the secret value for the given secret name from AWS Secrets Manager.
-
-    Parameters:
-    - secret_name (str): The name of the secret to fetch.
-
-    Returns:
-    - The value of the secret if found, otherwise None.
+    Fetches the secret value for the given secret ARN from AWS Secrets Manager.
     """
-    if not secret_name:
+    global LICENSE_KEY_CACHE
+
+    if not secret_arn:
         return ""
 
-    # Create a Secrets Manager client
+    enable_caching = os.getenv("ENABLE_CACHING", "false").lower() == "true"
+
+    # Check cache first if caching is enabled
+    if enable_caching and LICENSE_KEY_CACHE is not None:
+        logger.info(
+            "Using cached secret instead of fetching the license key from secrets manager"
+        )
+        return LICENSE_KEY_CACHE
+
     client = boto3.client("secretsmanager")
 
     try:
-        # Attempt to get the secret value
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        get_secret_value_response = client.get_secret_value(SecretId=secret_arn)
+        logger.info("Successfully retrieved license key from Secrets Manager")
     except ClientError as e:
-        # Handle the exception if the secret is not found or any other client error occurs
-        logger.error(f"Unable to retrieve secret {secret_name}: {e}")
+        logger.error(f"Unable to retrieve secret {secret_arn}: {e}")
         return ""
 
-    # Check if the secret uses the Secrets Manager binary field or the string field
     if "SecretString" in get_secret_value_response:
         secret = get_secret_value_response["SecretString"]
     else:
-        # For binary secrets, decode the binary data to get the secret string
         secret = b64decode(get_secret_value_response["SecretBinary"])
+
+    # Cache the secret before returning if caching is enabled
+    if enable_caching:
+        LICENSE_KEY_CACHE = secret
 
     return "" if not secret else secret
 
@@ -373,25 +381,36 @@ def _get_license_key_from_ssm(parameter_path):
     """
     Fetches the parameter value for the given parameter path
     from AWS Systems Manager Parameter Store.
-    Parameters:
-    - parameter_path (str): The path of the parameter to fetch.
-
-    Returns:
-    - The value of the parameter if found, otherwise None.
     """
-    # Create an SSM client
+    global LICENSE_KEY_CACHE
+
     if not parameter_path:
         return ""
+
+    enable_caching = os.getenv("ENABLE_CACHING", "false").lower() == "true"
+
+    # Check cache first if caching is enabled
+    if enable_caching and LICENSE_KEY_CACHE is not None:
+        logger.info(
+            "Using cached parameter instead of fetching the license key from SSM"
+        )
+        return LICENSE_KEY_CACHE
+
     client = boto3.client("ssm")
 
     try:
-        # Attempt to get the parameter value
         response = client.get_parameter(Name=parameter_path, WithDecryption=True)
+        logger.info("Successfully retrieved license key from SSM")
         parameter_value = response["Parameter"]["Value"]
-        return parameter_value
     except ClientError as e:
         logger.error(f"Unable to retrieve parameter {parameter_path}: {e}")
-        return ""
+        raise e
+
+    # Cache the parameter before returning if caching is enabled
+    if enable_caching:
+        LICENSE_KEY_CACHE = parameter_value
+
+    return parameter_value
 
 
 def _get_newrelic_tags(payload):

@@ -16,12 +16,18 @@ variable "nr_license_key" {
 
 variable "nr_license_key_source" {
   type        = string
-  description = "The source of the NewRelic license key. Must be one of 'environment_var', 'ssm', or 'secret_manager'."
+  description = "The source of the NewRelic license key. Must be one of 'environment_var', 'ssm', or 'secrets_manager'."
   default     = "environment_var"
   validation {
-    condition     = contains(["environment_var", "ssm", "secret_manager"], var.nr_license_key_source)
-    error_message = "The nr_license_key_source must be one of 'environment_var', 'ssm', or 'secret_manager'."
+    condition     = contains(["environment_var", "ssm", "secrets_manager"], var.nr_license_key_source)
+    error_message = "The nr_license_key_source must be one of 'environment_var', 'ssm', or 'secrets_manager'."
   }
+}
+
+variable "enable_caching_for_license_key" {
+  description = "Enable caching for the license key."
+  type        = bool
+  default     = false
 }
 
 variable "nr_logging_enabled" {
@@ -125,6 +131,40 @@ data "aws_iam_policy_document" "lambda_assume_policy" {
   }
 }
 
+resource "aws_iam_policy" "lambda_fetch_license_key_policy" {
+  name        = "lambda_fetch_license_key_policy"
+  description = "Policy for Lambda to fetch NewRelic license key from SSM Parameter or Secrets Manager"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action = [
+          "kms:Decrypt"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "lambda_role" {
   count = var.function_role == null ? 1 : 0
 
@@ -142,6 +182,14 @@ resource "aws_iam_role_policy_attachment" "lambda_log_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_fetch_license_key_policy" {
+  count = var.function_role == null ? 1 : 0
+
+  role       = aws_iam_role.lambda_role.0.name
+  policy_arn = aws_iam_policy.lambda_fetch_license_key_policy.arn
+}
+
+
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${var.service_name}"
   retention_in_days = var.lambda_log_retention_in_days
@@ -149,15 +197,10 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   tags = local.tags
 }
 
-resource "terraform_data" "build_lambda" {
-  triggers_replace = {
-    log_group_arn     = aws_cloudwatch_log_group.lambda_logs.arn
-    build_lambda      = var.build_lambda ? "true" : "false"
-    archive_folder    = local.archive_folder
-    lambda_image_name = var.lambda_image_name
-    archive_name      = local.archive_name
-    archive_md5       = filemd5(local.archive_name)
-  }
+resource "null_resource" "build_lambda" {
+  count = var.build_lambda ? 1 : 0
+  // Depends on log group, just in case this is created in a brand new AWS Subaccount, and it doesn't have subscriptions yet.
+  depends_on = [aws_cloudwatch_log_group.lambda_logs]
 
   provisioner "local-exec" {
     // OS Agnostic folder creation.
@@ -188,7 +231,7 @@ resource "aws_lambda_function" "ingestion_function" {
   depends_on = [
     aws_iam_role.lambda_role,
     aws_cloudwatch_log_group.lambda_logs,
-    terraform_data.build_lambda,
+    null_resource.build_lambda,
   ]
 
   function_name = var.service_name
@@ -210,6 +253,7 @@ resource "aws_lambda_function" "ingestion_function" {
       LOGGING_ENABLED = var.nr_logging_enabled ? "True" : "False"
       INFRA_ENABLED   = var.nr_infra_logging ? "True" : "False"
       NR_TAGS         = var.nr_tags
+      ENABLE_CACHING = var.enable_caching_for_license_key ? "True" : "False"
     }
   }
 
@@ -229,6 +273,6 @@ output "function_arn" {
 }
 
 output "lambda_archive" {
-  depends_on = [terraform_data.build_lambda]
+  depends_on = [null_resource.build_lambda]
   value      = local.archive_name
 }
