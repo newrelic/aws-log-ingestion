@@ -15,7 +15,7 @@ provider:
     # Your NewRelic license key
     LICENSE_KEY: ${env:LICENSE_KEY}
     # Determines if logs are forwarded to New Relic Logging
-    LOGGING_ENABLED: ${env:LOGGING_ENABLED, "False"}
+    LOGGING_ENABLED: ${env:LOGGING_ENABLED, "True"}
     # A boolean to determine if you want to output debug messages in the CloudWatch console
     DEBUG_LOGGING_ENABLED: ${env:DEBUG_LOGGING_ENABLED, "False"}
 
@@ -36,7 +36,7 @@ functions:
   newrelic-log-ingestion:
     description: Send log data from CloudWatch Logs to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
     handler: src/function.lambda_handler
-    name: newrelic-log-ingestion
+    name: newrelic-log-ingestion-akhilv1
 
 plugins:
   - serverless-python-requirements

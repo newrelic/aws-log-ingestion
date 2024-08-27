@@ -9,7 +9,7 @@ Parameters:
   NRLoggingEnabled:
     Type: String
     Description: Determines if logs are forwarded to New Relic Logging
-    Default: 'False'
+    Default: 'True'
     AllowedValues:
       - 'True'
       - 'False'
