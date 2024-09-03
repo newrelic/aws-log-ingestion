@@ -30,9 +30,7 @@ to deploy the log ingestion function manually.
 4. Build the SAM application (if on Linux `-u` can be omitted): `sam build -u --parameter-overrides 'ParameterKey=NRLicenseKey,ParameterValue=your-license-key-here'`
 5. Deploy the SAM application: `sam deploy --guided`
 
-Additional notes:
 
-* To set `LOGGING_ENABLED`: `sam build ... --parameter-overrides 'ParameterKey=NRLoggingEnabled,ParameterValue=True'`
 
 ### Serverless
 
@@ -44,9 +42,7 @@ Additional notes:
 6. Set the LICENSE_KEY environment variable: `export LICENSE_KEY=your-license-key-here`
 7. Deploy the function: `sls deploy`
 
-Additional notes:
 
-* To set `LOGGING_ENABLED`: `export LOGGING_ENABLED=True` (prior to deploy)
 
 ### Terraform
 
