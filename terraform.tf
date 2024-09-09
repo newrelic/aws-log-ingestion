@@ -17,7 +17,7 @@ variable "nr_license_key" {
 variable "nr_logging_enabled" {
   type        = bool
   description = "Determines if logs are forwarded to New Relic Logging"
-  default     = false
+  default     = true
 }
 
 variable "nr_infra_logging" {
@@ -183,7 +183,7 @@ resource "aws_lambda_function" "ingestion_function" {
     ? var.function_role
     : aws_iam_role.lambda_role.0.arn
   )
-  runtime     = "python3.9"
+  runtime     = "python3.11"
   filename    = local.archive_name
   handler     = "function.lambda_handler"
   memory_size = var.memory_size

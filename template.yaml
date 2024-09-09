@@ -9,7 +9,7 @@ Parameters:
   NRLoggingEnabled:
     Type: String
     Description: Determines if logs are forwarded to New Relic Logging
-    Default: 'False'
+    Default: 'True'
     AllowedValues:
       - 'True'
       - 'False'
@@ -62,7 +62,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.7.1
+    SemanticVersion: 2.9.4
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:
@@ -74,10 +74,10 @@ Resources:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Join ['-', ['newrelic-log-ingestion', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       MemorySize:
         Ref: MemorySize
-      Runtime: python3.9
+      Runtime: python3.11
       PermissionsBoundary: !If [ HasPermissionBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue ]
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${FunctionRole}
       Timeout:
@@ -96,10 +96,10 @@ Resources:
       CodeUri: src/
       Description: Sends log data from CloudWatch Logs to New Relic Infrastructure (Cloud integrations) and New Relic Logging
       Handler: function.lambda_handler
-      FunctionName: newrelic-log-ingestion
+      FunctionName: !Join ['-', ['newrelic-log-ingestion', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       MemorySize:
         Ref: MemorySize
-      Runtime: python3.9
+      Runtime: python3.11
       PermissionsBoundary: !If [ HasPermissionBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue ]
       Timeout:
         Ref: Timeout

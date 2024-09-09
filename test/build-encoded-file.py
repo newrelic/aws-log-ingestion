@@ -2,6 +2,7 @@
 Build a properly encoded payload to test log ingestion without needing to invoke
 the lambda.
 """
+
 import json
 import sys
 import gzip

@@ -25,14 +25,12 @@ to deploy the log ingestion function manually.
 ### SAM
 
 1. Clone this repository: `git clone https://github.com/newrelic/aws-log-ingestion.git`
-2. [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) Make sure you have >=0.33.0 installed, you can check with `sam --version`.
+2. [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) Make sure you have >=1.105.0 installed, you can check with `sam --version`.
 3. [Retrieve your New Relic License Key](https://docs.newrelic.com/docs/accounts/install-new-relic/account-setup/license-key)
 4. Build the SAM application (if on Linux `-u` can be omitted): `sam build -u --parameter-overrides 'ParameterKey=NRLicenseKey,ParameterValue=your-license-key-here'`
 5. Deploy the SAM application: `sam deploy --guided`
 
-Additional notes:
 
-* To set `LOGGING_ENABLED`: `sam build ... --parameter-overrides 'ParameterKey=NRLoggingEnabled,ParameterValue=True'`
 
 ### Serverless
 
@@ -44,9 +42,7 @@ Additional notes:
 6. Set the LICENSE_KEY environment variable: `export LICENSE_KEY=your-license-key-here`
 7. Deploy the function: `sls deploy`
 
-Additional notes:
 
-* To set `LOGGING_ENABLED`: `export LOGGING_ENABLED=True` (prior to deploy)
 
 ### Terraform
 
