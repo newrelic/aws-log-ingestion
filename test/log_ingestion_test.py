@@ -575,14 +575,19 @@ def test_lambda_request_ids_are_extracted(mock_aio_post):
     assert len(messages) == 5
     assert messages[0]["timestamp"] == timestamp
     assert messages[0]["attributes"]["aws"]["lambda_request_id"] == expected_request_id
+    assert messages[0]["attributes"]["aws"]["requestId"] == expected_request_id
     assert messages[1]["timestamp"] == timestamp
     assert messages[1]["attributes"]["aws"]["lambda_request_id"] == expected_request_id
+    assert messages[1]["attributes"]["aws"]["requestId"] == expected_request_id
     assert messages[2]["timestamp"] == timestamp
     assert messages[2]["attributes"]["aws"]["lambda_request_id"] == expected_request_id
+    assert messages[2]["attributes"]["aws"]["requestId"] == expected_request_id
     assert messages[3]["timestamp"] == timestamp
     assert messages[3]["attributes"]["aws"]["lambda_request_id"] == expected_request_id
+    assert messages[3]["attributes"]["aws"]["requestId"] == expected_request_id
     assert messages[4]["timestamp"] == timestamp
     assert messages[4]["attributes"]["aws"]["lambda_request_id"] == expected_request_id2
+    assert messages[4]["attributes"]["aws"]["requestId"] == expected_request_id2
 
 
 def aio_post_response():
