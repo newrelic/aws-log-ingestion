@@ -15,7 +15,7 @@ provider:
     # Your NewRelic license key
     LICENSE_KEY: ${env:LICENSE_KEY}
     # Determines if logs are forwarded to New Relic Logging
-    LOGGING_ENABLED: ${env:LOGGING_ENABLED, "False"}
+    LOGGING_ENABLED: ${env:LOGGING_ENABLED, "True"}
     # A boolean to determine if you want to output debug messages in the CloudWatch console
     DEBUG_LOGGING_ENABLED: ${env:DEBUG_LOGGING_ENABLED, "False"}
 

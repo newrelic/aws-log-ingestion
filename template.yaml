@@ -9,7 +9,7 @@ Parameters:
   NRLoggingEnabled:
     Type: String
     Description: Determines if logs are forwarded to New Relic Logging
-    Default: 'False'
+    Default: 'True'
     AllowedValues:
       - 'True'
       - 'False'
@@ -62,7 +62,7 @@ Metadata:
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
     HomePageUrl: https://github.com/newrelic/aws-log-ingestion
-    SemanticVersion: 2.9.3
+    SemanticVersion: 2.9.5
     SourceCodeUrl: https://github.com/newrelic/aws-log-ingestion
 
 Resources:

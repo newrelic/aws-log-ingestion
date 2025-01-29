@@ -33,7 +33,7 @@ variable "enable_caching_for_license_key" {
 variable "nr_logging_enabled" {
   type        = bool
   description = "Determines if logs are forwarded to New Relic Logging"
-  default     = false
+  default     = true
 }
 
 variable "nr_infra_logging" {
