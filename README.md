@@ -16,6 +16,13 @@ Additional notes:
 
 * Some users in UTF-8 environments have reported difficulty with defining strings of `NR_TAGS` delimited by the semicolon `;` character. If this applies to you, you can set an alternative delimiter character as the value of `NR_ENV_DELIMITER`, and separate your `NR_TAGS` with that.
 * Custom Lambda and VPC log groups can be set using the `NR_LAMBDA_LOG_GROUP_PREFIX` and `NR_VPC_LOG_GROUP_PREFIX` environment variables.
+* The New Relic License Key can now be fetched from multiple secure sources:
+
+- **Environment Variables**
+- **AWS Systems Manager (SSM) Parameter Store**
+- **AWS Secrets Manager**
+
+A caching mechanism has also been added to store the New Relic License Key. This prevents fetching the key from AWS Secrets Manager or SSM Parameter Store on each Lambda execution, improving performance.
 
 ## Manual Deployment
 
@@ -56,6 +63,33 @@ module "newrelic_log_ingestion" {
 ```
 
 By default, this will build and pack the lambda zip inside of the Terraform Module. You can supply your own by switching `build_lambda = false`, and specify the path to your lambda, using `lambda_archive = "{{LAMBDA_PATH}}"`, replacing `{{LAMBDA_PATH}}` with the path to your lambda.
+
+### Configuration Guide for New Relic License Key Retrieval
+
+To configure the retrieval of the New Relic License Key from different sources. Follow the steps below to set up your preferred method:
+
+1. **Select the License Key Source** : Use the `nr_license_key_source` variable to specify where the license key should be fetched from. You have three options:
+   * `environment_var`: Fetches the license key from an environment variable. This is the default setting.
+   * `ssm`: Retrieves the license key from AWS Systems Manager (SSM) Parameter Store.
+   * `secrets_manager`: Obtains the license key from AWS Secrets Manager.
+2. **Enable License Key Caching** : To improve performance by caching the New Relic License Key, set the `enable_caching_for_license_key` variable to `true`.
+3. **Specify the Key Location** :
+   * If you chose `ssm` or `secrets_manager` as your source in step 1, you need to provide additional information to locate the license key:
+     * For `secrets_manager`: Supply the secret's name or Amazon Resource Name (ARN) to the `nr_license_key` variable.
+     * For `ssm`: Provide the name of the parameter in the Parameter Store that holds the license key to the `nr_license_key` variable
+
+- Set the `nr_license_key_source` variable to choose the source of the license key. The available options are `environment_var`, `ssm`, or `secrets_manager`. The default value is `environment_var`.
+- Set the `enable_caching_for_license_key` variable to `true` to enable caching for the New Relic License Key.
+- When setting `nr_license_key_source` value to either `ssm` or `secrets_manager`, secret name or secret ARN can be passed to `nr_license_key` variable to fetch the key from Secrets Manager. Parameter store, the parameter name where the license key is stored can be provided by `nr_license_key` variable.
+
+```terraform
+module "newrelic_log_ingestion" {
+source                         = "github.com/newrelic/aws-log-ingestion"
+nr_license_key                 = "{{ARN_OF_LICENSE_KEY_SECRET_OF_SECRETS_MANAGER}}"
+nr_license_key_source          = "secrets_manager"
+enable_caching_for_license_key = true
+}
+```
 
 ## Infra Payload Format
 
