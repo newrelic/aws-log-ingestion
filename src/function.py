@@ -182,6 +182,15 @@ def _filter_log_lines(log_entry):
     for event in log_entry["logEvents"]:
         message = event["message"]
         if REPORT_PATTERN.match(message) or _is_lambda_message(message):
+            id, timestamp, message = event["id"], event["timestamp"], event["message"]
+            reconstructed_message = message.split('\t')
+            if len(reconstructed_message) >= 4:
+                message = reconstructed_message[3]
+                event = {
+                    "id": id,
+                    "timestamp": timestamp,
+                    "message": message
+                }
             final_log_events.append(event)
 
     ret = log_entry.copy()
