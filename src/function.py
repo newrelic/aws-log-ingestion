@@ -174,6 +174,24 @@ async def http_post(session, url, data, headers):
     raise MaxRetriesException()
 
 
+def processEventPayload(event):
+    """
+    Processes event payload for all formats.
+    """
+    id, timestamp, message = event["id"], event["timestamp"], event["message"]
+    reconstructed_message = message.split('\t')
+    if len(reconstructed_message) >= 4:
+        
+        message = reconstructed_message[3]
+        event = {
+            "id": id,
+            "timestamp": timestamp,
+            "message": message
+        }
+    
+    return event
+
+
 def _filter_log_lines(log_entry):
     """
     The EntryType.LAMBDA check guarantees that we'll be left with at least one log after filtering
@@ -182,16 +200,8 @@ def _filter_log_lines(log_entry):
     for event in log_entry["logEvents"]:
         message = event["message"]
         if REPORT_PATTERN.match(message) or _is_lambda_message(message):
-            id, timestamp, message = event["id"], event["timestamp"], event["message"]
-            reconstructed_message = message.split('\t')
-            if len(reconstructed_message) >= 4:
-                message = reconstructed_message[3]
-                event = {
-                    "id": id,
-                    "timestamp": timestamp,
-                    "message": message
-                }
-            final_log_events.append(event)
+            updated_event = processEventPayload(event)
+            final_log_events.append(updated_event)
 
     ret = log_entry.copy()
     ret["logEvents"] = final_log_events
