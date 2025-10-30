@@ -180,14 +180,10 @@ def format_agent_logs(event):
     Processes event payload for all formats.
     """
     id, timestamp, message = event["id"], event["timestamp"], event["message"]
-    reconstructed_message = message.split('\t')
+    reconstructed_message = message.split("\t")
     if len(reconstructed_message) == 4:
         message = reconstructed_message[3]
-        event = {
-            "id": id,
-            "timestamp": timestamp,
-            "message": message
-        }
+        event = {"id": id, "timestamp": timestamp, "message": message}
     return event
 
 
