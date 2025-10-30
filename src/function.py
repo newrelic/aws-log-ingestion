@@ -188,7 +188,6 @@ def format_agent_logs(event):
             "timestamp": timestamp,
             "message": message
         }
-    
     return event
 
 
