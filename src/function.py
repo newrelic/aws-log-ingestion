@@ -85,6 +85,7 @@ SESSION_MAX_PROCESSING_TIME = 1
 
 LAMBDA_LOG_GROUP_PREFIX = os.getenv("NR_LAMBDA_LOG_GROUP_PREFIX", "/aws/lambda")
 VPC_LOG_GROUP_PREFIX = os.getenv("NR_VPC_LOG_GROUP_PREFIX", "/aws/vpc/flow-logs")
+NEW_RELIC_FORMAT_LOGS = os.getenv("NEW_RELIC_FORMAT_LOGS", "false").lower() == "true"
 
 LAMBDA_NR_MONITORING_PATTERN = re.compile(r'.*"NR_LAMBDA_MONITORING')
 REPORT_PATTERN = re.compile("REPORT RequestId:")
@@ -174,6 +175,18 @@ async def http_post(session, url, data, headers):
     raise MaxRetriesException()
 
 
+def format_agent_logs(event):
+    """
+    Processes event payload for all formats.
+    """
+    id, timestamp, message = event["id"], event["timestamp"], event["message"]
+    reconstructed_message = message.split("\t")
+    if len(reconstructed_message) == 4:
+        message = reconstructed_message[3]
+        event = {"id": id, "timestamp": timestamp, "message": message}
+    return event
+
+
 def _filter_log_lines(log_entry):
     """
     The EntryType.LAMBDA check guarantees that we'll be left with at least one log after filtering
@@ -182,6 +195,8 @@ def _filter_log_lines(log_entry):
     for event in log_entry["logEvents"]:
         message = event["message"]
         if REPORT_PATTERN.match(message) or _is_lambda_message(message):
+            if NEW_RELIC_FORMAT_LOGS:
+                event = format_agent_logs(event)
             final_log_events.append(event)
 
     ret = log_entry.copy()
