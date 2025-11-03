@@ -16,6 +16,7 @@ Additional notes:
 
 * Some users in UTF-8 environments have reported difficulty with defining strings of `NR_TAGS` delimited by the semicolon `;` character. If this applies to you, you can set an alternative delimiter character as the value of `NR_ENV_DELIMITER`, and separate your `NR_TAGS` with that.
 * Custom Lambda and VPC log groups can be set using the `NR_LAMBDA_LOG_GROUP_PREFIX` and `NR_VPC_LOG_GROUP_PREFIX` environment variables.
+* For `.NET` Lambda functions, set `NEW_RELIC_FORMAT_LOGS=true` to enable proper processing of `.NET` specific log payload formats.
 
 ## Manual Deployment
 
