@@ -119,7 +119,7 @@ LAMBDA_REQUEST_ID_REGEX = re.compile(
     r"(?P<request_id>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
 )
 
-LOGGING_LAMBDA_VERSION = "2.9.5"
+LOGGING_LAMBDA_VERSION = "2.9.9"
 LOGGING_PLUGIN_METADATA = {"type": "lambda", "version": LOGGING_LAMBDA_VERSION}
 
 
