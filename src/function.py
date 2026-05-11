@@ -106,8 +106,10 @@ class EntryType(Enum):
 INGEST_SERVICE_VERSION = "v1"
 US_LOGGING_ENDPOINT = "https://log-api.newrelic.com/log/v1"
 EU_LOGGING_ENDPOINT = "https://log-api.eu.newrelic.com/log/v1"
+JP_LOGGING_ENDPOINT = "https://log-api.jp.newrelic.com/log/v1"
 US_INFRA_ENDPOINT = "https://cloud-collector.newrelic.com"
 EU_INFRA_ENDPOINT = "https://cloud-collector.eu01.nr-data.net"
+JP_INFRA_ENDPOINT = "https://cloud-collector.jp01.nr-data.net"
 INFRA_INGEST_SERVICE_PATHS = {
     EntryType.LAMBDA: "/aws/lambda",
     EntryType.VPC: "/aws/vpc",
@@ -424,9 +426,12 @@ def _get_infra_endpoint():
     """
     if "NR_INFRA_ENDPOINT" in os.environ:
         return os.environ["NR_INFRA_ENDPOINT"]
-    return (
-        EU_INFRA_ENDPOINT if _get_license_key().startswith("eu") else US_INFRA_ENDPOINT
-    )
+    license_key = _get_license_key()
+    if license_key.startswith("eu"):
+        return EU_INFRA_ENDPOINT
+    elif license_key.startswith("jp"):
+        return JP_INFRA_ENDPOINT
+    return US_INFRA_ENDPOINT
 
 
 def _split_infra_payload(data):
@@ -495,11 +500,12 @@ def _get_logging_endpoint(ingest_url=None):
         return ingest_url
     if "NR_LOGGING_ENDPOINT" in os.environ:
         return os.environ["NR_LOGGING_ENDPOINT"]
-    return (
-        EU_LOGGING_ENDPOINT
-        if _get_license_key().startswith("eu")
-        else US_LOGGING_ENDPOINT
-    )
+    license_key = _get_license_key()
+    if license_key.startswith("eu"):
+        return EU_LOGGING_ENDPOINT
+    elif license_key.startswith("jp"):
+        return JP_LOGGING_ENDPOINT
+    return US_LOGGING_ENDPOINT
 
 
 def _package_log_payload(data):
