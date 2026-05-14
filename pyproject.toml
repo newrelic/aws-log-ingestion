@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws-log-ingestion"
-version = "2.10.0"
+version = "2.11.0"
 description = ""
 authors = ["New Relic <serverless@newrelic.com>"]
 license = "Apache 2.0"
