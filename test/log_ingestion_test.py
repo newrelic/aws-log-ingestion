@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, AsyncMock
 
 US_URL = "https://log-api.newrelic.com/log/v1"
 EU_URL = "https://log-api.eu.newrelic.com/log/v1"
+JP_URL = "https://log-api.jp.newrelic.com/log/v1"
 OTHER_URL = "http://some-other-endpoint/logs/v1"
 
 
@@ -24,6 +25,7 @@ logging_enabled = "true"
 infra_enabled = "false"  # These tests just test logging
 license_key = "testlicensekey"
 license_key_eu = "eutestlicensekey"
+license_key_jp = "jptestlicensekey"
 log_group_name = "/aws/lambda/sam-node-test-dev-triggered"
 log_stream_name = "2019/01/31/[$LATEST]fe9b6a749a854acb95af7951c44a79e0"
 aws_log_events = AwsLogEvents(timestamp, log_group_name, log_stream_name)
@@ -109,6 +111,19 @@ def test_logging_can_override_nr_endpoint():
 )
 def test_logging_has_eu_nr_endpoint():
     assert function._get_logging_endpoint() == EU_URL
+
+
+@patch.dict(
+    os.environ,
+    {
+        "INFRA_ENABLED": infra_enabled,
+        "LOGGING_ENABLED": logging_enabled,
+        "LICENSE_KEY": license_key_jp,
+    },
+    clear=True,
+)
+def test_logging_has_jp_nr_endpoint():
+    assert function._get_logging_endpoint() == JP_URL
 
 
 def test_proper_headers_are_added(mock_aio_post):
