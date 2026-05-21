@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "aws-log-ingestion"
-version = "2.11.0"
+version = "2.11.1"
 description = ""
 authors = ["New Relic <serverless@newrelic.com>"]
 license = "Apache 2.0"
 package-mode= false
 
 [tool.poetry.dependencies]
-python = "^3.12"
-aiohttp = "^3.13.2"
+python = "^3.13"
+aiohttp = "^3.13.5"
 
 [tool.poetry.group.dev.dependencies]
 aws-sam-cli = "^1.118.0"
@@ -27,7 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py312']
+target-version = ['py313']
 include = '\.pyi?$'
 exclude = '''
 /(
