@@ -23,27 +23,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner (table output for logs)
+      # Gating step: HIGH/CRITICAL filter is honored here, table is printed to the
+      # Actions log so reviewers can read findings without opening the Security tab.
+      - name: Run Trivy vulnerability scanner (table, gates the PR)
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: fs
           format: 'table'
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
-          exit-code: '0'
+          exit-code: '1'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
 
+      # Upload-only step: trivy-action forces all severities for SARIF, so we
+      # keep exit-code=0 to avoid failing on LOW/MEDIUM findings we don't gate on.
+      # if: always() ensures SARIF still uploads even when the gating step failed.
       - name: Run Trivy vulnerability scanner (SARIF for Security tab)
+        if: always()
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: fs
           format: 'sarif'
-          severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
           output: 'trivy-results.sarif'
-          exit-code: '1'
+          exit-code: '0'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
