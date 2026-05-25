@@ -25,9 +25,9 @@ jobs:
 
       # Gating step: HIGH/CRITICAL filter is honored here, table is printed to the
       # Actions log so reviewers can read findings without opening the Security tab.
-      # Trivy CLI is pinned because newer versions reclassify some CVE severities
-      # from their original NVD ratings, which silently lets HIGH findings slip past
-      # this gate.
+      # TRIVY_VULN_SEVERITY_SOURCE=nvd forces NVD severity ratings; without it,
+      # newer Trivy auto-picks GHSA which sometimes classifies HIGH NVD CVEs as
+      # MEDIUM and silently lets them slip past this gate.
       - name: Run Trivy vulnerability scanner (table, gates the PR)
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -36,10 +36,10 @@ jobs:
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
           exit-code: '1'
-          version: 'v0.61.1'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+          TRIVY_VULN_SEVERITY_SOURCE: nvd
 
       # Upload-only step: trivy-action forces all severities for SARIF, so we
       # keep exit-code=0 to avoid failing on LOW/MEDIUM findings we don't gate on.
@@ -53,10 +53,10 @@ jobs:
           ignore-unfixed: true
           output: 'trivy-results.sarif'
           exit-code: '0'
-          version: 'v0.61.1'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+          TRIVY_VULN_SEVERITY_SOURCE: nvd
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
