@@ -6,62 +6,34 @@ on:
   schedule:
     # Every day at 12 AM IST (6:30 PM UTC)
     - cron: "30 18 * * *"
-  workflow_dispatch:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   trivy:
-    name: Trivy filesystem scan
+    name: Trivy security scan
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Gating step: HIGH/CRITICAL filter is honored here, table is printed to the
-      # Actions log so reviewers can read findings without opening the Security tab.
-      # TRIVY_VULN_SEVERITY_SOURCE lists severity sources in priority order. NVD
-      # first because it gives stricter ratings; the rest are fallbacks for CVEs
-      # not yet in NVD (otherwise newer Trivy drops them silently and lets HIGH
-      # findings slip past this gate).
-      - name: Run Trivy vulnerability scanner (table, gates the PR)
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: fs
-          format: 'table'
+          ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
-          exit-code: '1'
-          cache: 'false'
-        env:
-          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
-          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
-          TRIVY_VULN_SEVERITY_SOURCE: nvd,ghsa,redhat,osv,debian,ubuntu
-
-      # Upload-only step: trivy-action forces all severities for SARIF, so we
-      # keep exit-code=0 to avoid failing on LOW/MEDIUM findings we don't gate on.
-      # if: always() ensures SARIF still uploads even when the gating step failed.
-      - name: Run Trivy vulnerability scanner (SARIF for Security tab)
-        if: always()
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          scan-type: fs
-          format: 'sarif'
-          ignore-unfixed: true
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
           output: 'trivy-results.sarif'
-          exit-code: '0'
-          cache: 'false'
+          exit-code: '1'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
-          TRIVY_VULN_SEVERITY_SOURCE: nvd,ghsa,redhat,osv,debian,ubuntu
 
-      - name: Upload Trivy results to GitHub Security tab
+      - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
