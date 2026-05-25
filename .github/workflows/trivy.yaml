@@ -37,6 +37,7 @@ jobs:
           severity: 'HIGH,CRITICAL,MEDIUM,LOW'
           ignore-unfixed: true
           exit-code: '1'
+          cache: 'false'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
@@ -54,6 +55,7 @@ jobs:
           ignore-unfixed: true
           output: 'trivy-results.sarif'
           exit-code: '0'
+          cache: 'false'
         env:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
