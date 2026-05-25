@@ -33,7 +33,7 @@ jobs:
         with:
           scan-type: fs
           format: 'table'
-          severity: 'HIGH,CRITICAL'
+          severity: 'HIGH,CRITICAL,MEDIUM,LOW'
           ignore-unfixed: true
           exit-code: '1'
         env:
