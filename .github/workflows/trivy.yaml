@@ -39,13 +39,15 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: Notify Slack on Trivy failure
-        if: failure()
+      # TEMPORARY: testing on pull_request to verify Slack message format.
+      # Revert to `github.event_name == 'schedule'` before opening the clean PR.
+      - name: Notify Slack on scheduled scan failure
+        if: failure() && github.event_name == 'pull_request'
         uses: slackapi/slack-github-action@v1.23.0
         with:
           payload: |
             {
-              "text": ":rotating_light: *Trivy detected HIGH/CRITICAL CVEs in ${{ github.repository }}*\n*Branch:* `${{ github.ref_name }}`\n*Triggered by:* ${{ github.event_name }}\n*Run:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n*Findings:* ${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=is%3Aopen+tool%3ATrivy"
+              "text": ":rotating_light: Trivy detected HIGH/CRITICAL CVEs on master in ${{ github.repository }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nFindings: ${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=is%3Aopen+tool%3ATrivy"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TRIVY_WEBHOOK_URL }}
