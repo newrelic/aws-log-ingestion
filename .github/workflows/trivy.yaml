@@ -38,3 +38,14 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+
+      - name: Notify Slack on Trivy failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": ":rotating_light: *Trivy detected HIGH/CRITICAL CVEs in ${{ github.repository }}*\n*Branch:* `${{ github.ref_name }}`\n*Triggered by:* ${{ github.event_name }}\n*Run:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n*Findings:* ${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=is%3Aopen+tool%3ATrivy"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TRIVY_WEBHOOK_URL }}
