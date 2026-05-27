@@ -3,6 +3,8 @@ name: Security Scan (Trivy)
 on:
   pull_request:
     branches: [master, main]
+  pull_request_target:
+    types: [opened, reopened]
   schedule:
     # Every day at 11:30 AM IST (6:00 AM UTC)
     - cron: "0 6 * * *"
@@ -15,6 +17,7 @@ permissions:
 jobs:
   trivy:
     name: Trivy security scan
+    if: github.event_name != 'pull_request_target'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -47,6 +50,21 @@ jobs:
           payload: |
             {
               "text": ":rotating_light: Trivy detected HIGH/CRITICAL CVEs on master in ${{ github.repository }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nFindings: ${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=is%3Aopen+tool%3ATrivy"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TRIVY_WEBHOOK_URL }}
+
+  dependabot-notify:
+    name: Notify Slack on Dependabot PR
+    if: github.event_name == 'pull_request_target' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": ":robot_face: Dependabot opened a PR in ${{ github.repository }}\nTitle: ${{ github.event.pull_request.title }}\nPR: ${{ github.event.pull_request.html_url }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TRIVY_WEBHOOK_URL }}
