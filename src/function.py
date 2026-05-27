@@ -109,7 +109,7 @@ EU_LOGGING_ENDPOINT = "https://log-api.eu.newrelic.com/log/v1"
 JP_LOGGING_ENDPOINT = "https://log-api.jp.newrelic.com/log/v1"
 US_INFRA_ENDPOINT = "https://cloud-collector.newrelic.com"
 EU_INFRA_ENDPOINT = "https://cloud-collector.eu01.nr-data.net"
-JP_INFRA_ENDPOINT = "https://cloud-collector.jp01.nr-data.net"
+JP_INFRA_ENDPOINT = "https://cloud-collector.jp.nr-data.net"
 INFRA_INGEST_SERVICE_PATHS = {
     EntryType.LAMBDA: "/aws/lambda",
     EntryType.VPC: "/aws/vpc",
