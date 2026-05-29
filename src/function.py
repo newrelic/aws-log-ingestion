@@ -106,7 +106,7 @@ class EntryType(Enum):
 INGEST_SERVICE_VERSION = "v1"
 US_LOGGING_ENDPOINT = "https://log-api.newrelic.com/log/v1"
 EU_LOGGING_ENDPOINT = "https://log-api.eu.newrelic.com/log/v1"
-JP_LOGGING_ENDPOINT = "https://log-api.jp.newrelic.com/log/v1"
+JP_LOGGING_ENDPOINT = "https://log-api.jp.nr-data.net/log/v1"
 US_INFRA_ENDPOINT = "https://cloud-collector.newrelic.com"
 EU_INFRA_ENDPOINT = "https://cloud-collector.eu01.nr-data.net"
 JP_INFRA_ENDPOINT = "https://cloud-collector.jp.nr-data.net"
@@ -121,7 +121,7 @@ LAMBDA_REQUEST_ID_REGEX = re.compile(
     r"(?P<request_id>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
 )
 
-LOGGING_LAMBDA_VERSION = "2.11.2"
+LOGGING_LAMBDA_VERSION = "2.11.3"
 LOGGING_PLUGIN_METADATA = {"type": "lambda", "version": LOGGING_LAMBDA_VERSION}
 
 
