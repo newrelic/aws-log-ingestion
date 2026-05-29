@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, AsyncMock
 
 US_URL = "https://log-api.newrelic.com/log/v1"
 EU_URL = "https://log-api.eu.newrelic.com/log/v1"
-JP_URL = "https://log-api.jp.newrelic.com/log/v1"
+JP_URL = "https://log-api.jp.nr-data.net/log/v1"
 OTHER_URL = "http://some-other-endpoint/logs/v1"
 
 
