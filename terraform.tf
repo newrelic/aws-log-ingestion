@@ -30,6 +30,7 @@ variable "nr_tags" {
   type        = string
   description = "Additional tags added to the logs"
   sensitive   = false
+  default     = null
 }
 
 variable "lambda_archive" {
