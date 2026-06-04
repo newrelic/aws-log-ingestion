@@ -50,6 +50,12 @@ variable "lambda_image_name" {
   default     = "newrelic-log-ingestion"
 }
 
+variable "runtime" {
+  type        = string
+  description = "Python runtime for the Lambda function. Exposed so consumers can stage a runtime upgrade in lock-step with a package rebuild (see triggers on null_resource.build_lambda) rather than picking up a new runtime against a previously-built package."
+  default     = "python3.13"
+}
+
 variable "memory_size" {
   type        = number
   description = "Memory size for the New Relic Log Ingestion Lambda function"
@@ -144,6 +150,22 @@ resource "null_resource" "build_lambda" {
   // Depends on log group, just in case this is created in a brand new AWS Subaccount, and it doesn't have subscriptions yet.
   depends_on = [aws_cloudwatch_log_group.lambda_logs]
 
+  // Re-run the docker build whenever any input that affects the produced
+  // package changes. Without these triggers, a module upgrade that bumps
+  // the Lambda runtime (e.g. python3.12 -> python3.13) will update the
+  // runtime attribute on aws_lambda_function.ingestion_function without
+  // rebuilding the bundled package, leaving existing deployments running
+  // a stale package against a newer runtime (e.g. Runtime.ImportModuleError
+  // for `cgi` against python3.13).
+  triggers = {
+    runtime        = var.runtime
+    dockerfile_sha = filesha256("${path.module}/Dockerfile")
+    src_sha = sha256(join("", [
+      for f in sort(fileset("${path.module}/src", "**")) :
+      filesha256("${path.module}/src/${f}")
+    ]))
+  }
+
   provisioner "local-exec" {
     // OS Agnostic folder creation.
     command = (local.archive_folder != "."
@@ -182,7 +204,7 @@ resource "aws_lambda_function" "ingestion_function" {
     ? var.function_role
     : aws_iam_role.lambda_role.0.arn
   )
-  runtime     = "python3.13"
+  runtime     = var.runtime
   filename    = local.archive_name
   handler     = "function.lambda_handler"
   memory_size = var.memory_size
