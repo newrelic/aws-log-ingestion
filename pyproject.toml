@@ -12,7 +12,7 @@ aiohttp = "^3.13.5"
 
 [tool.poetry.group.dev.dependencies]
 aws-sam-cli = "^1.118.0"
-black = "^24.3.0"
+black = ">=24.3,<27.0"
 boto3 = "^1.19.2"
 coverage = "^6.0.2"
 flake8 = "^7.0.0"
