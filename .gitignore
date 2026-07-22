@@ -22,3 +22,5 @@ node_modules
 package.json
 package-lock.json
 *.zip
+
+.worktrees/

@@ -1,0 +1,87 @@
+service: newrelic-log-ingestion
+
+provider:
+  name: aws
+  runtime: python3.12
+  stage: staging
+  region: us-east-2
+  memorySize: 128  # ram in MB
+  timeout: 60 # timeout in seconds
+
+  iam:
+    role:
+      name: staging-newrelic-logs-shipper
+      path: /staging-common-services/
+      managedPolicies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      tags:
+        Service: common-services
+        Environment: staging
+        Component: newrelic-logs-shipper
+
+  environment:
+    # Determines if logs are forwarded to New Relic Infrastructure
+    INFRA_ENABLED: ${env:INFRA_ENABLED, "False"}
+    # Your NewRelic license key
+    LICENSE_KEY: ${ssm(us-west-2):/common/infra/NEWRELIC_LICENSE}
+    # Determines if logs are forwarded to New Relic Logging
+    LOGGING_ENABLED: ${env:LOGGING_ENABLED, "True"}
+    # A boolean to determine if you want to output debug messages in the CloudWatch console
+    DEBUG_LOGGING_ENABLED: ${env:DEBUG_LOGGING_ENABLED, "False"}
+
+  deploymentBucket:
+    name: flytrex-serverless-staging
+    skipPolicySetup: true
+  deploymentPrefix: newrelic-logs-shipper  # s3 bucket prefix appended to deployments
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    fileName: ./src/requirements.txt
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./LICENSE
+    - ./src/function.py
+
+functions:
+  stagingNewrelicLogIngestion:
+    description: Send log data from CloudWatch Logs to New Relic Infrastructure (Cloud Integrations) and New Relic Logging.
+    handler: src/function.lambda_handler
+    name: staging-newrelic-log-ingestion
+    reservedConcurrency: 30 # optional, reserved concurrency limit for this function. By default, AWS uses account concurrency limit
+    destinations: # invocations that exhaust all retries land here instead of being silently dropped
+      onFailure:
+        type: sqs
+        arn: !GetAtt NewrelicLogIngestionDlq.Arn
+
+resources:
+  Resources:
+    NewrelicLogIngestionDlq:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: staging-newrelic-log-ingestion-dlq
+        MessageRetentionPeriod: 1209600 # 14 days
+
+    NewrelicLogIngestionDlqAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: staging-newrelic-log-ingestion-dlq-alarm
+        AlarmDescription: Number of Messages in SQS Queue is More than the threshold
+        Namespace: AWS/SQS
+        MetricName: ApproximateNumberOfMessagesVisible
+        Dimensions:
+          - Name: QueueName
+            Value: !GetAtt NewrelicLogIngestionDlq.QueueName
+        Statistic: Minimum
+        Period: 60
+        EvaluationPeriods: 5
+        Threshold: 1
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: missing
+        AlarmActions:
+          - arn:aws:sns:us-east-2:233256533036:devops
+
+plugins: []
