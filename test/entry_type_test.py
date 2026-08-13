@@ -4,7 +4,6 @@ import json
 
 from src import function
 
-
 # Adding parent directory to the path for finding 'src' directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
