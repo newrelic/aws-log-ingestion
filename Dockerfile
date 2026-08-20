@@ -7,7 +7,12 @@ RUN apt-get update && \
 
 WORKDIR /build
 COPY src/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt --target .
+# pip is build-only tooling: `--target .` copies project deps into /build but never pip
+# itself, so it doesn't reach out.zip. Remove it (and its dist-info) right after use so
+# CVEs in pip's own vendored libs (e.g. msgpack, setuptools) don't show up in the image scan.
+RUN pip install --no-cache-dir -r requirements.txt --target . && \
+    rm -rf /usr/local/lib/python3.13/site-packages/pip \
+           /usr/local/lib/python3.13/site-packages/pip-*.dist-info
 COPY src .
 RUN zip -r /out.zip .
 
