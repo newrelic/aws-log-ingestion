@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Send release details to Slack workflow
         id: slack
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v3.0.3
         with:
           payload: |
             {
