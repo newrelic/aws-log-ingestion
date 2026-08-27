@@ -34,6 +34,7 @@ For more detailed documentation, check New Relic's documentation site:
 https://docs.newrelic.com/
 """
 
+import asyncio
 import datetime
 import gzip
 import json
@@ -41,13 +42,11 @@ import logging
 import os
 import re
 import time
-
 from base64 import b64decode
 from enum import Enum
 from urllib import request
 
 import aiohttp
-import asyncio
 
 logger = logging.getLogger()
 
@@ -520,7 +519,14 @@ def _package_log_payload(data):
 
     for log_event in log_events:
         if LAMBDA_NR_MONITORING_PATTERN.match(log_event["message"]):
-            trace_id = _get_trace_id(log_event["message"])
+            msg = log_event["message"]
+            if NEW_RELIC_FORMAT_LOGS:
+                # .NET Lambda runtime prefixes Console.WriteLine with timestamp\treqId\tinfo\t.
+                # Strip that prefix so _get_trace_id can parse the JSON payload.
+                parts = msg.split("\t")
+                if len(parts) == 4:
+                    msg = parts[3]
+            trace_id = _get_trace_id(msg)
 
         log_message = {
             "message": log_event["message"],
@@ -587,12 +593,21 @@ def _reconstruct_log_payload(common, logs):
 
 def _get_trace_id(message_str):
     """
-    message_str: str
-        message = "[
-            1,
-            \"NR_LAMBDA_MONITORING\",
-            \"base64.b64encode(gzip.compress(message)).decode("utf-8")\",
-        ]"
+    Extracts traceId from an NR_LAMBDA_MONITORING payload string.
+
+    Handles three payload formats produced by different NR agents:
+
+    v1 (Python, Node.js):
+        [1, "NR_LAMBDA_MONITORING", "<base64_gzip>"]
+        Decompressed payload: {"metadata": {...}, "data": {"analytic_event_data": ...}}
+
+    v2-str (.NET, Ruby, Go):
+        [2, "NR_LAMBDA_MONITORING", {metadata_dict}, "<base64_gzip>"]
+        Decompressed payload: flat dict — no "data" wrapper.
+
+    v2-dict (Java NewRelicAgentJava):
+        [2, "NR_LAMBDA_MONITORING", {metadata_dict}, {data_dict}]
+        Payload at index 3 is already a plain JSON dict, not encoded.
     """
 
     def extract_trace_id(key):
@@ -605,8 +620,25 @@ def _get_trace_id(message_str):
     trace_id = ""
     try:
         message = json.loads(message_str)
-        data_str = gzip.decompress(b64decode(message[2])).decode("utf-8")
-        data = json.loads(data_str)["data"]
+        version = message[0]
+
+        if version == 1:
+            # v1: Python, Node.js — payload at index 2, wrapped in {"data": {...}}
+            data_str = gzip.decompress(b64decode(message[2])).decode("utf-8")
+            data = json.loads(data_str)
+            if "data" in data:
+                data = data["data"]
+        elif version == 2:
+            payload = message[3]
+            if isinstance(payload, str):
+                # v2-str: .NET, Ruby, Go — payload at index 3, base64+gzip, flat dict
+                data = json.loads(gzip.decompress(b64decode(payload)).decode("utf-8"))
+            else:
+                # v2-dict: Java (NewRelicAgentJava) — payload at index 3, already a plain dict
+                data = payload
+        else:
+            logger.debug(f"Unknown NR_LAMBDA_MONITORING version: {version}")
+            return trace_id
 
         trace_id = extract_trace_id("analytic_event_data")
         if trace_id:
