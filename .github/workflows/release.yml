@@ -44,6 +44,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     needs: release
+    permissions: {}
     steps:
       - name: Send release details to Slack workflow
         id: slack
