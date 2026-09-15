@@ -47,7 +47,7 @@ jobs:
 
       - name: Notify Slack on scheduled scan failure
         if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0 # v1.27.0
+        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
         with:
           payload: |
             {
@@ -84,7 +84,7 @@ jobs:
 
       - name: Notify Slack on scheduled image scan failure
         if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0 # v1.27.0
+        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
         with:
           payload: |
             {
@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Slack
-        uses: slackapi/slack-github-action@37ebaef184d7626c5f204ab8d3baff4262dd30f0 # v1.27.0
+        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
         with:
           payload: |
             {
