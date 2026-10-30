@@ -8,7 +8,7 @@ package-mode= false
 
 [tool.poetry.dependencies]
 python = "^3.13"
-aiohttp = "^3.14.3"
+aiohttp = "^3.14.4"
 
 [tool.poetry.group.dev.dependencies]
 aws-sam-cli = "^1.118.0"
